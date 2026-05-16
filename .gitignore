@@ -1,4 +1,4 @@
-# ─── .NET ───────────────────────────────
+# .NET
 bin/
 obj/
 *.user
@@ -7,16 +7,17 @@ obj/
 *.db
 *.db-shm
 *.db-wal
-appsettings.Development.json    ← secrets stay local
+appsettings.Development.json
 
-# ─── React ──────────────────────────────
+
+# React
 frontend/node_modules/
 frontend/.env
 frontend/.env.local
 frontend/dist/
 frontend/build/
 
-# ─── General ────────────────────────────
+# General
 .DS_Store
 Thumbs.db
 *.log

@@ -1,4 +1,3 @@
-// VoteConfiguration.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MemeMayhem.Core.Entities;

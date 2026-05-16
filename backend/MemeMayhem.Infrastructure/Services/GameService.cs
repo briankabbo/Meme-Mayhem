@@ -12,10 +12,12 @@ namespace MemeMayhem.Infrastructure.Services;
 public class GameService : IGameService
 {
     private readonly MemeMayhemDbContext _db;
+    private readonly IAIPromptService _aiPromptService;
 
-    public GameService(MemeMayhemDbContext db)
+    public GameService(MemeMayhemDbContext db, IAIPromptService aiPromptService)
     {
         _db = db;
+        _aiPromptService = aiPromptService;
     }
 
     public async Task<RoundDto> StartGameAsync(Guid roomId)
@@ -63,8 +65,13 @@ public class GameService : IGameService
             .OrderBy(_ => Guid.NewGuid())
             .ToList();
 
-        // TODO: Replace with AI prompt service later
-        var prompt = "When the WiFi goes down at the worst possible time...";
+        // Get previously used prompts to avoid repetition
+        var usedPrompts = await _db.Rounds
+            .Where(r => r.RoomId == room.Id)
+            .Select(r => r.PromptText)
+            .ToListAsync();
+
+        var prompt = await _aiPromptService.GeneratePromptAsync(room.Theme, usedPrompts);
 
         var round = new Round
         {

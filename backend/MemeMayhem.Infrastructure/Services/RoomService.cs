@@ -1,4 +1,3 @@
-// RoomService.cs
 using MemeMayhem.Core.Entities;
 using MemeMayhem.Core.Enums;
 using MemeMayhem.Core.Interfaces;
@@ -16,12 +15,11 @@ public class RoomService : IRoomService
         _db = db;
     }
 
-    // ─── CREATE ROOM ─────────────────────────────────────────
+    // Create Room
 
     public async Task<Room> CreateRoomAsync(
         string nickname, string theme, int totalRounds)
     {
-        // Validate player count will be enforced on join
         // Validate rounds
         if (totalRounds < 1 || totalRounds > 20)
             throw new InvalidOperationException(
@@ -62,7 +60,7 @@ public class RoomService : IRoomService
             .FirstAsync(r => r.Id == room.Id);
     }
 
-    // ─── JOIN ROOM ───────────────────────────────────────────
+    // Join Room
 
     public async Task<(Room room, Player player)> JoinRoomAsync(
         string code, string nickname)
@@ -82,7 +80,7 @@ public class RoomService : IRoomService
         if (activePlayers >= 10)
             throw new InvalidOperationException("Room is full (max 10 players)");
 
-        // Warn if only 2 players (still allowed but not recommended)
+        // Warn if only 2 players
         var player = new Player
         {
             Id = Guid.NewGuid(),
@@ -106,7 +104,7 @@ public class RoomService : IRoomService
         return (updatedRoom, player);
     }
 
-    // ─── JOIN AS SPECTATOR ───────────────────────────────────
+    // Join as Spectator
 
     public async Task<Player> JoinAsSpectatorAsync(string code, string nickname)
     {
@@ -132,7 +130,7 @@ public class RoomService : IRoomService
         return spectator;
     }
 
-    // ─── RECONNECT ───────────────────────────────────────────
+    // Reconnect
 
     public async Task<Player?> ReconnectAsync(
         string code, Guid playerId, string newConnectionId)
@@ -158,7 +156,7 @@ public class RoomService : IRoomService
         return player;
     }
 
-    // ─── PROMOTE HOST ────────────────────────────────────────
+    // Promote Host
 
     public async Task PromoteNewHostAsync(Guid roomId)
     {
@@ -192,7 +190,7 @@ public class RoomService : IRoomService
         await _db.SaveChangesAsync();
     }
 
-    // ─── GETTERS ─────────────────────────────────────────────
+    // Getters
 
     public async Task<Room?> GetRoomByCodeAsync(string code)
     {
@@ -241,7 +239,7 @@ public class RoomService : IRoomService
         await _db.SaveChangesAsync();
     }
 
-    // ─── PRIVATE HELPERS ─────────────────────────────────────
+    // Private Helpers
 
     private async Task<string> GenerateUniqueCodeAsync()
     {

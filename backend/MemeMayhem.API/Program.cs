@@ -16,6 +16,8 @@ builder.Services.AddDbContext<MemeMayhemDbContext>(options =>
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameService, GameService>();
 
+builder.Services.AddHttpClient<IAIPromptService, AIPromptService>();
+
 // SignalR
 builder.Services.AddSignalR();
 

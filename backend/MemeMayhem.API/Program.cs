@@ -1,5 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+using MemeMayhem.API.Hubs;
+using MemeMayhem.Core.Interfaces;
 using MemeMayhem.Infrastructure.Data;
+using MemeMayhem.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,15 +12,28 @@ builder.Services.AddDbContext<MemeMayhemDbContext>(options =>
     )
 );
 
-builder.Services.AddOpenApi();
+// Services
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IGameService, GameService>();
+
+// SignalR
+builder.Services.AddSignalR();
+
+// CORS for React frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.UseCors("ReactApp");
+app.MapHub<GameHub>("/hubs/game");
 
-app.UseHttpsRedirection();
-
-app.Run();
+app.Run();

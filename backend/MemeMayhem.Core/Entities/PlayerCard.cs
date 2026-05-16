@@ -1,4 +1,3 @@
-// PlayerCard.cs — player's hand
 namespace MemeMayhem.Core.Entities;
 
 public class PlayerCard

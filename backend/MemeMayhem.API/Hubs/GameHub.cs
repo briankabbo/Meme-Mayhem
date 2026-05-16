@@ -20,7 +20,7 @@ public class GameHub : Hub
         _gameService = gameService;
     }
 
-    // ─── CONNECTION ──────────────────────────────────────────
+    // Connection
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
@@ -43,7 +43,7 @@ public class GameHub : Hub
                 Nickname = player.Nickname
             });
 
-        // If host disconnects → promote next player
+        // If host disconnects - promote next player
         if (player.IsHost)
             await PromoteHostAsync(player.RoomId);
 
@@ -71,7 +71,7 @@ public class GameHub : Hub
         await base.OnDisconnectedAsync(exception);
     }
 
-    // ─── ROOM ────────────────────────────────────────────────
+    // Room
 
     public async Task CreateRoom(string nickname, string theme, int totalRounds)
     {
@@ -211,7 +211,7 @@ public class GameHub : Hub
         }
     }
 
-    // ─── GAME ────────────────────────────────────────────────
+    // Game
 
     public async Task StartGame(Guid roomId)
     {
@@ -314,7 +314,7 @@ public class GameHub : Hub
         }
     }
 
-    // ─── PRIVATE HELPERS ─────────────────────────────────────
+    // Private Helpers
 
     private async Task AdvanceTurnAsync(Guid cardPlayId, Guid roomId)
     {

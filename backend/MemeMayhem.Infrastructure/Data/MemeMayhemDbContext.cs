@@ -1,4 +1,3 @@
-// MemeMayhemDbContext.cs
 using Microsoft.EntityFrameworkCore;
 using MemeMayhem.Core.Entities;
 

@@ -18,6 +18,10 @@ builder.Services.AddScoped<IGameService, GameService>();
 
 builder.Services.AddHttpClient<IAIPromptService, AIPromptService>();
 
+builder.Services.AddHttpClient<IGiphyService, GiphyService>();
+builder.Services.AddHttpClient<IMemeCardService, MemeCardService>();
+builder.Services.AddHostedService<StartupSyncService>();
+
 // SignalR
 builder.Services.AddSignalR();
 

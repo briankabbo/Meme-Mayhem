@@ -1,4 +1,3 @@
-// src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { GameProvider } from './context/GameContext'
 import Home from './pages/Home'

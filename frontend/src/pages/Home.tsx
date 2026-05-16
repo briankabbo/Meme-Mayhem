@@ -1,5 +1,5 @@
-// src/pages/Home.tsx
 import { useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../hooks/useGame'
@@ -27,9 +27,12 @@ export default function Home() {
   const [loading, setLoading]   = useState(false)
 
   // Navigate to game when room is ready
+
+useEffect(() => {
   if (state.roomId && state.roomStatus === 'Lobby') {
     navigate('/game')
   }
+}, [state.roomId, state.roomStatus, navigate])
 
   const handleCreate = async () => {
     if (!nickname.trim()) return

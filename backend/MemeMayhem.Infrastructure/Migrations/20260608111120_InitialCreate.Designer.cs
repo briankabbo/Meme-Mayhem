@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MemeMayhem.Infrastructure.Migrations
 {
     [DbContext(typeof(MemeMayhemDbContext))]
-    [Migration("20260515080352_InitialCreate")]
+    [Migration("20260608111120_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

@@ -3,11 +3,12 @@ using MemeMayhem.Core.Interfaces;
 using MemeMayhem.Infrastructure.Data;
 using MemeMayhem.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<MemeMayhemDbContext>(options =>
-    options.UseSqlServer(
+    options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );

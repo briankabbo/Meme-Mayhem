@@ -7,22 +7,22 @@ import {
 import type { GameState, GameAction, Player, CardPlay } from '../../types/game'
 
 const initialState: GameState = {
-  isConnected:        false,
-  roomId:             null,
-  roomCode:           null,
-  roomStatus:         'Lobby',
-  playerId:           null,
-  isHost:             false,
-  isSpectator:        false,
-  players:            [],
-  currentRound:       null,
-  hand:               [],
-  selectedCardId:     null,
-  roundResults:       null,
-  isMyTurn:           false,
-  totalRounds:        0,
+  isConnected: false,
+  roomId: null,
+  roomCode: null,
+  roomStatus: 'Lobby',
+  playerId: null,
+  isHost: false,
+  isSpectator: false,
+  players: [],
+  currentRound: null,
+  hand: [],
+  selectedCardId: null,
+  roundResults: null,
+  isMyTurn: false,
+  totalRounds: 0,
   currentRoundNumber: 0,
-  error:              null,
+  error: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -34,19 +34,19 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ROOM_CREATED':
       return {
         ...state,
-        roomId:     action.payload.roomId,
-        roomCode:   action.payload.roomCode,
-        playerId:   action.payload.playerId,
-        isHost:     true,
+        roomId: action.payload.roomId,
+        roomCode: action.payload.code,
+        playerId: action.payload.playerId,
+        isHost: true,
         roomStatus: 'Lobby'
       }
 
     case 'ROOM_JOINED':
       return {
         ...state,
-        roomId:     action.payload.roomId,
-        playerId:   action.payload.playerId,
-        isHost:     action.payload.isHost,
+        roomId: action.payload.roomId,
+        playerId: action.payload.playerId,
+        isHost: action.payload.isHost,
         roomStatus: 'Lobby'
       }
 
@@ -74,11 +74,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ROUND_STARTED':
       return {
         ...state,
-        currentRound:       action.payload,
+        currentRound: action.payload,
         currentRoundNumber: action.payload.roundNumber,
-        roundResults:       null,
-        isMyTurn:           false,
-        selectedCardId:     null,
+        roundResults: null,
+        isMyTurn: false,
+        selectedCardId: null,
       }
 
     case 'YOUR_TURN':
@@ -119,7 +119,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         roundResults: action.payload,
-        isMyTurn:     false,
+        isMyTurn: false,
       }
 
     case 'NEW_CARD_DEALT':

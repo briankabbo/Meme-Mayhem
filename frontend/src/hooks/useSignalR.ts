@@ -14,7 +14,17 @@ export function useSignalR() {
       .withAutomaticReconnect()
       .build()
 
-    connection.on('RoomCreated', d => dispatch({ type: 'ROOM_CREATED', payload: d }))
+    connection.on('RoomCreated', (data) => {
+      console.log('RoomCreated event received:', data)
+      dispatch({
+        type: 'ROOM_CREATED',
+        payload: {
+          roomId: data.roomId,
+          roomCode: data.code,
+          playerId: data.playerId
+        }
+      })
+    })
     connection.on('RoomJoined', d => dispatch({ type: 'ROOM_JOINED', payload: d }))
     connection.on('PlayerJoined', d => dispatch({ type: 'PLAYER_JOINED', payload: d }))
     connection.on('PlayerDisconnected', d => dispatch({ type: 'PLAYER_LEFT', payload: d.playerId }))

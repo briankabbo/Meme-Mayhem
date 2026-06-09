@@ -1,5 +1,3 @@
-// src/types/game.ts
-
 export type VoteType = 'Haha' | 'Lmao' | 'Meh'
 export type RoomStatus = 'Lobby' | 'Active' | 'Ended'
 export type RoundStatus = 'CardPicking' | 'Voting' | 'Results' | 'Completed'
@@ -83,7 +81,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'SET_CONNECTED'; payload: boolean }
-  | { type: 'ROOM_CREATED'; payload: { roomId: string; roomCode: string; playerId: string } }
+  | { type: 'ROOM_CREATED'; payload: { roomId: string; roomCode: string; playerId: string; code?: string } }
   | { type: 'ROOM_JOINED'; payload: { roomId: string; playerId: string; isHost: boolean } }
   | { type: 'PLAYER_JOINED'; payload: Player }
   | { type: 'PLAYER_LEFT'; payload: string }

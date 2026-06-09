@@ -8,10 +8,10 @@ import { Flame, Plus, LogIn } from 'lucide-react'
 type Tab = 'create' | 'join'
 
 const THEMES = [
-  { id: 'dark',      emoji: '💀', label: 'Dark Humor' },
-  { id: 'office',    emoji: '💼', label: 'Office Safe' },
-  { id: 'genz',      emoji: '📱', label: 'Gen Z' },
-  { id: 'chaos',     emoji: '🔥', label: 'Pure Chaos' },
+  { id: 'dark', emoji: '💀', label: 'Dark Humor' },
+  { id: 'office', emoji: '💼', label: 'Office Safe' },
+  { id: 'genz', emoji: '📱', label: 'Gen Z' },
+  { id: 'chaos', emoji: '🔥', label: 'Pure Chaos' },
   { id: 'wholesome', emoji: '🌸', label: 'Wholesome' },
 ]
 
@@ -19,20 +19,20 @@ export default function Home() {
   const navigate = useNavigate()
   const { state, createRoom, joinRoom } = useGame()
 
-  const [tab, setTab]           = useState<Tab>('create')
+  const [tab, setTab] = useState<Tab>('create')
   const [nickname, setNickname] = useState('')
-  const [theme, setTheme]       = useState('chaos')
-  const [rounds, setRounds]     = useState(5)
+  const [theme, setTheme] = useState('chaos')
+  const [rounds, setRounds] = useState(5)
   const [roomCode, setRoomCode] = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [loading, setLoading] = useState(false)
 
   // Navigate to game when room is ready
 
-useEffect(() => {
-  if (state.roomId && state.roomStatus === 'Lobby') {
-    navigate('/game')
-  }
-}, [state.roomId, state.roomStatus, navigate])
+  useEffect(() => {
+    if (state.roomCode && state.roomStatus === 'Lobby') {
+      navigate('/game')
+    }
+  }, [state.roomCode, state.roomStatus, navigate])
 
   const handleCreate = async () => {
     if (!nickname.trim()) return
@@ -54,7 +54,7 @@ useEffect(() => {
       {/* Header */}
       <motion.div
         initial={{ y: -40, opacity: 0 }}
-        animate={{ y: 0,   opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="text-center mb-10"
       >
@@ -73,7 +73,7 @@ useEffect(() => {
       {/* Card */}
       <motion.div
         initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0,  opacity: 1 }}
+        animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
         className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8"
       >
@@ -108,7 +108,7 @@ useEffect(() => {
               key="create"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{    opacity: 0, x: 20 }}
+              exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
               className="space-y-5"
             >
@@ -212,7 +212,7 @@ useEffect(() => {
               key="join"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{    opacity: 0, x: -20 }}
+              exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
               className="space-y-5"
             >
@@ -291,9 +291,8 @@ useEffect(() => {
         transition={{ delay: 0.5 }}
         className="mt-6 flex items-center gap-2"
       >
-        <div className={`w-2 h-2 rounded-full ${
-          state.isConnected ? 'bg-green-400' : 'bg-red-400'
-        }`} />
+        <div className={`w-2 h-2 rounded-full ${state.isConnected ? 'bg-green-400' : 'bg-red-400'
+          }`} />
         <span className="text-xs text-gray-400 font-body">
           {state.isConnected ? 'Connected' : 'Connecting...'}
         </span>

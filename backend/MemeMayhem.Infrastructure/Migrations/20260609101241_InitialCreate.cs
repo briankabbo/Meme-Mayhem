@@ -15,14 +15,14 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "MemeCards",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ExternalId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Label = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Source = table.Column<int>(type: "int", nullable: false),
-                    Tags = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IsNsfw = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ExternalId = table.Column<string>(type: "text", nullable: false),
+                    Label = table.Column<string>(type: "text", nullable: false),
+                    ImageUrl = table.Column<string>(type: "text", nullable: false),
+                    Source = table.Column<int>(type: "integer", nullable: false),
+                    Tags = table.Column<string>(type: "text", nullable: false),
+                    IsNsfw = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -33,11 +33,11 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "ReactionGifs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    VoteType = table.Column<int>(type: "int", nullable: false),
-                    GifUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TenorId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    VoteType = table.Column<int>(type: "integer", nullable: false),
+                    GifUrl = table.Column<string>(type: "text", nullable: false),
+                    TenorId = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -48,14 +48,14 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "Rooms",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
-                    HostPlayerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Theme = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TotalRounds = table.Column<int>(type: "int", nullable: false),
-                    CurrentRound = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Code = table.Column<string>(type: "character varying(6)", maxLength: 6, nullable: false),
+                    HostPlayerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Theme = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    TotalRounds = table.Column<int>(type: "integer", nullable: false),
+                    CurrentRound = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -66,16 +66,16 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "Players",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Nickname = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
-                    ConnectionId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IsHost = table.Column<bool>(type: "bit", nullable: false),
-                    IsSpectator = table.Column<bool>(type: "bit", nullable: false),
-                    IsConnected = table.Column<bool>(type: "bit", nullable: false),
-                    TotalScore = table.Column<int>(type: "int", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DisconnectedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoomId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Nickname = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
+                    ConnectionId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IsHost = table.Column<bool>(type: "boolean", nullable: false),
+                    IsSpectator = table.Column<bool>(type: "boolean", nullable: false),
+                    IsConnected = table.Column<bool>(type: "boolean", nullable: false),
+                    TotalScore = table.Column<int>(type: "integer", nullable: false),
+                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DisconnectedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -92,15 +92,15 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "Rounds",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoundNumber = table.Column<int>(type: "int", nullable: false),
-                    PromptText = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    TurnOrder = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
-                    CurrentTurnIndex = table.Column<int>(type: "int", nullable: false),
-                    StartedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoomId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoundNumber = table.Column<int>(type: "integer", nullable: false),
+                    PromptText = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    TurnOrder = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
+                    CurrentTurnIndex = table.Column<int>(type: "integer", nullable: false),
+                    StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -117,12 +117,12 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "PlayerCards",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlayerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MemeCardId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoomId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    IsPlayed = table.Column<bool>(type: "bit", nullable: false),
-                    DealtAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PlayerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MemeCardId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoomId = table.Column<Guid>(type: "uuid", nullable: false),
+                    IsPlayed = table.Column<bool>(type: "boolean", nullable: false),
+                    DealtAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -145,12 +145,12 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "CardPlays",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoundId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlayerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MemeCardId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TurnIndex = table.Column<int>(type: "int", nullable: false),
-                    PlayedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoundId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PlayerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    MemeCardId = table.Column<Guid>(type: "uuid", nullable: false),
+                    TurnIndex = table.Column<int>(type: "integer", nullable: false),
+                    PlayedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -179,11 +179,11 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "RoundScores",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoundId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlayerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PointsEarned = table.Column<int>(type: "int", nullable: false),
-                    RunningTotal = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RoundId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PlayerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PointsEarned = table.Column<int>(type: "integer", nullable: false),
+                    RunningTotal = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -206,12 +206,12 @@ namespace MemeMayhem.Infrastructure.Migrations
                 name: "Votes",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CardPlayId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    VoterId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    VoteType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Points = table.Column<int>(type: "int", nullable: false),
-                    VotedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CardPlayId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VoterId = table.Column<Guid>(type: "uuid", nullable: false),
+                    VoteType = table.Column<string>(type: "text", nullable: false),
+                    Points = table.Column<int>(type: "integer", nullable: false),
+                    VotedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {

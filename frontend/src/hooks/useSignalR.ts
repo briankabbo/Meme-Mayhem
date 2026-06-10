@@ -9,6 +9,7 @@ export function useSignalR() {
   const connectionRef = useRef<signalR.HubConnection | null>(null)
 
   const connect = useCallback(async () => {
+    console.log('Connecting to SignalR...')
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL)
       .withAutomaticReconnect()

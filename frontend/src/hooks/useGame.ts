@@ -19,19 +19,21 @@ export function useGame() {
   return {
     state,
     dispatch,
-    createRoom:  (nickname: string, theme: string, rounds: number) =>
-      invoke('CreateRoom', nickname, theme, rounds),
-    joinRoom:    (code: string, nickname: string) =>
+    createRoom: (nickname: string, theme: string, rounds: number) => {
+      console.log('invoking CreateRoom', { nickname, theme, rounds })
+      invoke('CreateRoom', nickname, theme, rounds)
+    },
+    joinRoom: (code: string, nickname: string) =>
       invoke('JoinRoom', code, nickname),
-    startGame:   () =>
+    startGame: () =>
       invoke('StartGame', state.roomId),
-    submitCard:  (cardId: string) => {
+    submitCard: (cardId: string) => {
       dispatch({ type: 'SELECT_CARD', payload: cardId })
       invoke('SubmitCard', state.currentRound?.id, cardId)
     },
-    submitVote:  (cardPlayId: string, voteType: string) =>
+    submitVote: (cardPlayId: string, voteType: string) =>
       invoke('SubmitVote', cardPlayId, voteType),
-    clearError:  () =>
+    clearError: () =>
       dispatch({ type: 'CLEAR_ERROR' }),
   }
 }

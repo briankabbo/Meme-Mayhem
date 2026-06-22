@@ -199,6 +199,13 @@ public class RoomService : IRoomService
             .FirstOrDefaultAsync(r => r.Code == code);
     }
 
+    public async Task<Room?> GetRoomByIdAsync(Guid roomId)
+    {
+        return await _db.Rooms
+            .Include(r => r.Players)
+            .FirstOrDefaultAsync(r => r.Id == roomId);
+    }
+
     public async Task<Player?> GetPlayerByConnectionAsync(string connectionId)
     {
         return await _db.Players
@@ -244,7 +251,7 @@ public class RoomService : IRoomService
     private async Task<string> GenerateUniqueCodeAsync()
     {
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var random = new Random();
+        var random = Random.Shared;
         string code;
 
         // Keep generating until unique

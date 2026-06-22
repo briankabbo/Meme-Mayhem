@@ -46,16 +46,18 @@ public class MemeCardService : IMemeCardService
                 .GetProperty("memes")
                 .EnumerateArray();
 
+            var existingIds = await _db.MemeCards
+                .Select(m => m.ExternalId)
+                .ToListAsync();
+            var existingSet = new HashSet<string>(existingIds);
+
             int added = 0;
 
             foreach (var meme in memes)
             {
                 var externalId = meme.GetProperty("id").GetString() ?? string.Empty;
 
-                bool exists = await _db.MemeCards
-                    .AnyAsync(m => m.ExternalId == externalId);
-
-                if (exists) continue;
+                if (existingSet.Contains(externalId)) continue;
 
                 var memeUrl = meme.GetProperty("url").GetString() ?? string.Empty;
                 var memeName = meme.GetProperty("name").GetString() ?? "Unknown Meme";
@@ -72,6 +74,7 @@ public class MemeCardService : IMemeCardService
                     CreatedAt = DateTime.UtcNow
                 });
 
+                existingSet.Add(externalId);
                 added++;
             }
 

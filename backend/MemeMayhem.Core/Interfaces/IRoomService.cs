@@ -11,6 +11,7 @@ public interface IRoomService
     Task<Player?> ReconnectAsync(string code, Guid playerId, string newConnectionId);
     Task PromoteNewHostAsync(Guid roomId);
     Task<Room?> GetRoomByCodeAsync(string code);
+    Task<Room?> GetRoomByIdAsync(Guid roomId);
     Task<Player?> GetPlayerByConnectionAsync(string connectionId);
     Task<Player?> GetPlayerByIdAsync(Guid playerId);         // ← added
     Task<List<Player>> GetActivePlayersAsync(Guid roomId);   // ← added

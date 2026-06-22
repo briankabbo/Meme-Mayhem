@@ -16,7 +16,6 @@ public class GiphyService : IGiphyService
     private readonly MemeMayhemDbContext _db;
     private readonly ILogger<GiphyService> _logger;
     private readonly string _apiKey;
-    private readonly Random _random = new();
 
     private const string GIPHY_BASE = "https://api.giphy.com/v1/gifs";
 
@@ -68,6 +67,11 @@ public class GiphyService : IGiphyService
         {
             _logger.LogInformation("Syncing Giphy reaction GIFs...");
 
+            var existingGiphyIds = await _db.ReactionGifs
+                .Select(g => g.TenorId)
+                .ToListAsync();
+            var existingSet = new HashSet<string>(existingGiphyIds);
+
             int added = 0;
 
             foreach (var (voteType, queries) in _queries)
@@ -94,11 +98,7 @@ public class GiphyService : IGiphyService
                         var giphyId = gif.GetProperty("id")
                             .GetString() ?? string.Empty;
 
-                        // Skip if already in DB
-                        bool exists = await _db.ReactionGifs
-                            .AnyAsync(g => g.TenorId == giphyId);
-
-                        if (exists) continue;
+                        if (existingSet.Contains(giphyId)) continue;
 
                         // Get GIF URL
                         var gifUrl = gif
@@ -118,6 +118,7 @@ public class GiphyService : IGiphyService
                             CreatedAt = DateTime.UtcNow
                         });
 
+                        existingSet.Add(giphyId);
                         added++;
                     }
 
@@ -144,7 +145,7 @@ public class GiphyService : IGiphyService
             throw new InvalidOperationException(
                 $"No GIFs found for vote type {voteType}");
 
-        return gifs[_random.Next(gifs.Count)];
+        return gifs[Random.Shared.Next(gifs.Count)];
     }
 
     public async Task<List<ReactionGif>> GetGifsByVoteTypeAsync(VoteType voteType)

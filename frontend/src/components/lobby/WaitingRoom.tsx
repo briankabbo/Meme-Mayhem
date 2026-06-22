@@ -69,7 +69,7 @@ export default function WaitingRoom() {
             </button>
           </div>
           <p className="text-xs text-gray-400 font-body mt-3">
-            {THEME_LABELS[state.players[0]?.nickname] || '🔥 Pure Chaos'} •{' '}
+            {(state.theme && THEME_LABELS[state.theme]) || '🔥 Pure Chaos'} •{' '}
             {state.totalRounds || 5} rounds
           </p>
         </motion.div>

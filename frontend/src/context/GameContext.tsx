@@ -2,8 +2,10 @@ import {
   createContext,
   useContext,
   useReducer,
-  type ReactNode
+  type ReactNode,
+  useState
 } from 'react'
+import * as signalR from '@microsoft/signalr'
 import type { GameState, GameAction, Player, CardPlay } from '../../types/game'
 
 const initialState: GameState = {
@@ -23,6 +25,7 @@ const initialState: GameState = {
   totalRounds: 0,
   currentRoundNumber: 0,
   error: null,
+  theme: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -38,16 +41,23 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         roomCode: action.payload.code,
         playerId: action.payload.playerId,
         isHost: true,
-        roomStatus: 'Lobby'
+        roomStatus: 'Lobby',
+        players: action.payload.players,
+        totalRounds: action.payload.totalRounds,
+        theme: action.payload.theme
       }
 
     case 'ROOM_JOINED':
       return {
         ...state,
         roomId: action.payload.roomId,
+        roomCode: action.payload.code,
         playerId: action.payload.playerId,
         isHost: action.payload.isHost,
-        roomStatus: 'Lobby'
+        roomStatus: 'Lobby',
+        players: action.payload.players,
+        totalRounds: action.payload.totalRounds,
+        theme: action.payload.theme
       }
 
     case 'PLAYER_JOINED':
@@ -152,12 +162,15 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 const GameContext = createContext<{
   state: GameState
   dispatch: React.Dispatch<GameAction>
+  connection: signalR.HubConnection | null
+  setConnection: (conn: signalR.HubConnection | null) => void
 } | null>(null)
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
+  const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   return (
-    <GameContext.Provider value={{ state, dispatch }}>
+    <GameContext.Provider value={{ state, dispatch, connection, setConnection }}>
       {children}
     </GameContext.Provider>
   )

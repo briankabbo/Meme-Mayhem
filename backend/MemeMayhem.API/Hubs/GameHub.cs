@@ -49,23 +49,36 @@ public class GameHub : Hub
 
         // 30s grace period before auto-skip
         var cts = new CancellationTokenSource();
-        _disconnectTimers[player.Id] = cts;
+        lock (_disconnectTimers)
+        {
+            _disconnectTimers[player.Id] = cts;
+        }
 
         _ = Task.Run(async () =>
         {
-            try
+            using (cts)
             {
-                await Task.Delay(TimeSpan.FromSeconds(30), cts.Token);
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(30), cts.Token);
 
-                // Still disconnected after 30s → notify room
-                await Clients.Group(player.RoomId.ToString())
-                    .SendAsync("PlayerTimedOut", new
+                    // Still disconnected after 30s → notify room
+                    await Clients.Group(player.RoomId.ToString())
+                        .SendAsync("PlayerTimedOut", new
+                        {
+                            PlayerId = player.Id,
+                            Nickname = player.Nickname
+                        });
+                }
+                catch (TaskCanceledException) { }
+                finally
+                {
+                    lock (_disconnectTimers)
                     {
-                        PlayerId = player.Id,
-                        Nickname = player.Nickname
-                    });
+                        _disconnectTimers.Remove(player.Id);
+                    }
+                }
             }
-            catch (TaskCanceledException) { }
         }, cts.Token);
 
         await base.OnDisconnectedAsync(exception);
@@ -93,7 +106,18 @@ public class GameHub : Hub
                 RoomId = room.Id,
                 Code = room.Code,
                 PlayerId = player.Id,
-                IsHost = true
+                IsHost = true,
+                Theme = room.Theme,
+                TotalRounds = room.TotalRounds,
+                Players = room.Players.Select(p => new PlayerDto
+                {
+                    Id = p.Id,
+                    Nickname = p.Nickname,
+                    IsHost = p.IsHost,
+                    IsSpectator = p.IsSpectator,
+                    IsConnected = p.IsConnected,
+                    TotalScore = p.TotalScore
+                }).ToList()
             });
         }
         catch (Exception ex)
@@ -154,15 +178,30 @@ public class GameHub : Hub
             {
                 RoomId = updatedRoom.Id,
                 PlayerId = player.Id,
-                IsHost = false
+                IsHost = player.IsHost,
+                Code = updatedRoom.Code,
+                Theme = updatedRoom.Theme,
+                TotalRounds = updatedRoom.TotalRounds,
+                Players = updatedRoom.Players.Select(p => new PlayerDto
+                {
+                    Id = p.Id,
+                    Nickname = p.Nickname,
+                    IsHost = p.IsHost,
+                    IsSpectator = p.IsSpectator,
+                    IsConnected = p.IsConnected,
+                    TotalScore = p.TotalScore
+                }).ToList()
             });
 
             await Clients.Group(updatedRoom.Id.ToString())
-                .SendAsync("PlayerJoined", new
+                .SendAsync("PlayerJoined", new PlayerDto
                 {
-                    PlayerId = player.Id,
-                    Nickname = nickname,
-                    TotalPlayers = updatedRoom.Players.Count
+                    Id = player.Id,
+                    Nickname = player.Nickname,
+                    IsHost = player.IsHost,
+                    IsSpectator = player.IsSpectator,
+                    IsConnected = player.IsConnected,
+                    TotalScore = player.TotalScore
                 });
         }
         catch (Exception ex)
@@ -185,10 +224,14 @@ public class GameHub : Hub
             }
 
             // Cancel disconnect timer
-            if (_disconnectTimers.TryGetValue(playerId, out var cts))
+            lock (_disconnectTimers)
             {
-                cts.Cancel();
-                _disconnectTimers.Remove(playerId);
+                if (_disconnectTimers.TryGetValue(playerId, out var cts))
+                {
+                    cts.Cancel();
+                    cts.Dispose();
+                    _disconnectTimers.Remove(playerId);
+                }
             }
 
             await Groups.AddToGroupAsync(
@@ -261,10 +304,14 @@ public class GameHub : Hub
             }
 
             // Cancel turn timer
-            if (_turnTimers.TryGetValue(roundId, out var cts))
+            lock (_turnTimers)
             {
-                cts.Cancel();
-                _turnTimers.Remove(roundId);
+                if (_turnTimers.TryGetValue(roundId, out var cts))
+                {
+                    cts.Cancel();
+                    cts.Dispose();
+                    _turnTimers.Remove(roundId);
+                }
             }
 
             var cardPlay = await _gameService
@@ -400,48 +447,61 @@ public class GameHub : Hub
         Guid roundId, Guid currentPlayerId, Guid roomId)
     {
         var cts = new CancellationTokenSource();
-        _turnTimers[roundId] = cts;
+        lock (_turnTimers)
+        {
+            _turnTimers[roundId] = cts;
+        }
 
         await Clients.Group(roomId.ToString())
             .SendAsync("TurnTimerStarted", new { Seconds = 15 });
 
         _ = Task.Run(async () =>
         {
-            try
+            using (cts)
             {
-                await Task.Delay(TimeSpan.FromSeconds(15), cts.Token);
-
-                // Timer expired → skip turn
-                await Clients.Group(roomId.ToString())
-                    .SendAsync("TurnSkipped", new
-                    {
-                        PlayerId = currentPlayerId,
-                        Reason = "Timer expired"
-                    });
-
-                await _gameService.SkipTurnAsync(roundId);
-                var updatedRound = await GetRoundDtoAsync(roundId);
-                if (updatedRound == null) return;
-
-                if (await _gameService.IsRoundCompleteAsync(roundId))
+                try
                 {
-                    await EndRoundAsync(roundId, roomId);
-                    return;
-                }
+                    await Task.Delay(TimeSpan.FromSeconds(15), cts.Token);
 
-                await Clients.Group(roomId.ToString())
-                    .SendAsync("TurnStarted", new
+                    // Timer expired → skip turn
+                    await Clients.Group(roomId.ToString())
+                        .SendAsync("TurnSkipped", new
+                        {
+                            PlayerId = currentPlayerId,
+                            Reason = "Timer expired"
+                        });
+
+                    await _gameService.SkipTurnAsync(roundId);
+                    var updatedRound = await GetRoundDtoAsync(roundId);
+                    if (updatedRound == null) return;
+
+                    if (await _gameService.IsRoundCompleteAsync(roundId))
                     {
-                        CurrentPlayerId = updatedRound.CurrentPlayerId,
-                        TurnIndex = updatedRound.CurrentTurnIndex,
-                        TotalTurns = updatedRound.TotalTurns
-                    });
+                        await EndRoundAsync(roundId, roomId);
+                        return;
+                    }
 
-                await NotifyCurrentPlayerAsync(updatedRound);
-                await StartTurnTimerAsync(
-                    roundId, updatedRound.CurrentPlayerId, roomId);
+                    await Clients.Group(roomId.ToString())
+                        .SendAsync("TurnStarted", new
+                        {
+                            CurrentPlayerId = updatedRound.CurrentPlayerId,
+                            TurnIndex = updatedRound.CurrentTurnIndex,
+                            TotalTurns = updatedRound.TotalTurns
+                        });
+
+                    await NotifyCurrentPlayerAsync(updatedRound);
+                    await StartTurnTimerAsync(
+                        roundId, updatedRound.CurrentPlayerId, roomId);
+                }
+                catch (TaskCanceledException) { }
+                finally
+                {
+                    lock (_turnTimers)
+                    {
+                        _turnTimers.Remove(roundId);
+                    }
+                }
             }
-            catch (TaskCanceledException) { }
         }, cts.Token);
     }
 
@@ -512,16 +572,15 @@ private async Task<RoundDto?> GetRoundDtoAsync(Guid roundId)
     return await _gameService.GetRoundDtoAsync(roundId);
 }
 
-private async Task<dynamic?> GetRoomAsync(Guid roomId)
+private async Task<Room?> GetRoomAsync(Guid roomId)
 {
-    return await _roomService.GetRoomByCodeAsync(roomId.ToString());
+    return await _roomService.GetRoomByIdAsync(roomId);
 }
 
-private async Task<dynamic?> GetNewHostAsync(Guid roomId)
+private async Task<Player?> GetNewHostAsync(Guid roomId)
 {
-    return await _roomService.GetActivePlayersAsync(roomId)
-        .ContinueWith(t => t.Result
-            .FirstOrDefault(p => p.IsHost) as dynamic);
+    var players = await _roomService.GetActivePlayersAsync(roomId);
+    return players.FirstOrDefault(p => p.IsHost);
 }
 
 private async Task<List<Player>> GetActivePlayersAsync(Guid roomId)

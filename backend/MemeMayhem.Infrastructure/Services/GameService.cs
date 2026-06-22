@@ -101,7 +101,7 @@ public class GameService : IGameService
             .Deserialize<List<Guid>>(round.TurnOrder) ?? new();
 
         // Enforce turn order
-        if (turnOrder[round.CurrentTurnIndex] != playerId)
+        if (round.CurrentTurnIndex < 0 || round.CurrentTurnIndex >= turnOrder.Count || turnOrder[round.CurrentTurnIndex] != playerId)
             throw new InvalidOperationException("Not your turn");
 
         // Mark card as played
@@ -128,18 +128,20 @@ public class GameService : IGameService
         await _db.SaveChangesAsync();
 
         // Load card details for DTO
-        var card = await _db.MemeCards.FindAsync(cardId);
-        var player = await _db.Players.FindAsync(playerId);
+        var card = await _db.MemeCards.FindAsync(cardId)
+            ?? throw new InvalidOperationException("Card not found");
+        var player = await _db.Players.FindAsync(playerId)
+            ?? throw new InvalidOperationException("Player not found");
 
         return new CardPlayDto
         {
             Id = cardPlay.Id,
             PlayerId = playerId,
-            PlayerName = player!.Nickname,
+            PlayerName = player.Nickname,
             TurnIndex = cardPlay.TurnIndex,
             Card = new MemeCardDto
             {
-                Id = card!.Id,
+                Id = card.Id,
                 Label = card.Label,
                 ImageUrl = card.ImageUrl
             },
@@ -156,6 +158,12 @@ public class GameService : IGameService
         // Can't vote on own card
         if (cardPlay.PlayerId == voterId)
             throw new InvalidOperationException("Cannot vote on your own card");
+
+        var voter = await _db.Players.FindAsync(voterId)
+            ?? throw new InvalidOperationException("Voter not found");
+
+        if (voter.IsSpectator)
+            throw new InvalidOperationException("Spectators cannot vote");
 
         // Can't double vote
         var existingVote = await _db.Votes
@@ -187,12 +195,10 @@ public class GameService : IGameService
         await _db.Votes.AddAsync(vote);
         await _db.SaveChangesAsync();
 
-        var voter = await _db.Players.FindAsync(voterId);
-
         return new VoteDto
         {
             VoterId = voterId,
-            VoterName = voter!.Nickname,
+            VoterName = voter.Nickname,
             VoteType = voteType,
             Points = points
         };
@@ -465,7 +471,7 @@ public class GameService : IGameService
             RoundNumber = round.RoundNumber,
             PromptText = round.PromptText,
             Status = round.Status.ToString(),
-            CurrentPlayerId = turnOrder.FirstOrDefault(),
+            CurrentPlayerId = turnOrder.ElementAtOrDefault(round.CurrentTurnIndex),
             CurrentTurnIndex = round.CurrentTurnIndex,
             TotalTurns = turnOrder.Count,
             CardPlays = new List<CardPlayDto>()

@@ -77,12 +77,13 @@ export interface GameState {
   totalRounds: number
   currentRoundNumber: number
   error: string | null
+  theme: string | null
 }
 
 export type GameAction =
   | { type: 'SET_CONNECTED'; payload: boolean }
-  | { type: 'ROOM_CREATED'; payload: { roomId: string; roomCode: string; playerId: string; code?: string } }
-  | { type: 'ROOM_JOINED'; payload: { roomId: string; playerId: string; isHost: boolean } }
+  | { type: 'ROOM_CREATED'; payload: { roomId: string; code: string; playerId: string; theme: string; totalRounds: number; players: Player[] } }
+  | { type: 'ROOM_JOINED'; payload: { roomId: string; playerId: string; isHost: boolean; code: string; theme: string; totalRounds: number; players: Player[] } }
   | { type: 'PLAYER_JOINED'; payload: Player }
   | { type: 'PLAYER_LEFT'; payload: string }
   | { type: 'GAME_STARTED' }

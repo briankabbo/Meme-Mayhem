@@ -5,8 +5,9 @@ import CardReveal from './CardReveal'
 import ScoreBoard from './ScoreBoard'
 import TurnTimer from './TurnTimer'
 import RoundResults from './RoundResults'
+import VotePanel from './VotePanel'
 import { Users } from 'lucide-react'
-import type { Player } from '../../types/game'
+import type { Player, CardPlay } from '../../types/game'
 
 export default function GameBoard() {
   const { state } = useGame()
@@ -30,12 +31,18 @@ export default function GameBoard() {
   const currentPlayer = players.find(
     (p: Player) => p.id === currentRound.currentPlayerId)
 
+  // Most-recently revealed card for the vote sidebar
+  const latestCardPlay: CardPlay | null =
+    currentRound.cardPlays.length > 0
+      ? currentRound.cardPlays[currentRound.cardPlays.length - 1]
+      : null
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mayhem-surface via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-mayhem-surface via-white to-blue-50 flex flex-col">
 
       {/* Top Bar */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
+        <div className="flex items-center justify-between max-w-screen-xl mx-auto">
 
           {/* Round info */}
           <div>
@@ -66,89 +73,111 @@ export default function GameBoard() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      {/* 3-Column Layout */}
+      <div className="flex-1 grid grid-cols-[240px_1fr_240px] gap-4 max-w-screen-xl mx-auto w-full px-4 py-4">
 
-        {/* Prompt */}
-        <motion.div
-          key={currentRound.id}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0   }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
-        >
-          <p className="text-xs font-body text-gray-400 uppercase tracking-widest mb-2">
-            Prompt
-          </p>
-          <p className="font-display font-bold text-gray-800 text-lg leading-snug">
-            {currentRound.promptText}
-          </p>
-        </motion.div>
-
-        {/* Current turn indicator */}
-        <AnimatePresence mode="wait">
-          {isMyTurn ? (
-            <motion.div
-              key="your-turn"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1    }}
-              exit={{    opacity: 0, scale: 0.95  }}
-              className="bg-gradient-to-r from-mayhem-primary to-red-400
-                         rounded-2xl p-4 text-center text-white"
-            >
-              <p className="font-display font-bold text-lg">
-                🎯 Your Turn!
-              </p>
-              <p className="font-body text-sm opacity-90">
-                Pick a meme card from your hand
-              </p>
-            </motion.div>
-          ) : currentPlayer ? (
-            <motion.div
-              key="other-turn"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{    opacity: 0 }}
-              className="bg-mayhem-surface rounded-2xl p-4 text-center"
-            >
-              <p className="font-body text-gray-500 text-sm">
-                <span className="font-semibold text-gray-700">
-                  {currentPlayer.nickname}
-                </span>
-                {' '}is picking a card...
-              </p>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
-        {/* Revealed Cards */}
-        <div>
-          <p className="font-display font-bold text-gray-700 text-sm mb-3">
-            Played Cards
-          </p>
-          <CardReveal
-            cardPlays={currentRound.cardPlays}
+        {/* LEFT — Scoreboard sidebar */}
+        <aside className="flex flex-col gap-4">
+          <ScoreBoard
+            players={players}
             myPlayerId={playerId ?? ''}
           />
-        </div>
+        </aside>
 
-        {/* Scoreboard */}
-        <ScoreBoard
-          players={players}
-          myPlayerId={playerId ?? ''}
-        />
+        {/* CENTER — Main game area */}
+        <main className="flex flex-col gap-4 min-w-0">
 
-        {/* Spacer for hand */}
-        <div className="h-40" />
-      </div>
+          {/* Prompt */}
+          <motion.div
+            key={currentRound.id}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0   }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
+          >
+            <p className="text-xs font-body text-gray-400 uppercase tracking-widest mb-2">
+              Prompt
+            </p>
+            <p className="font-display font-bold text-gray-800 text-lg leading-snug">
+              {currentRound.promptText}
+            </p>
+          </motion.div>
 
-      {/* Card Hand — fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-3">
-        <div className="max-w-lg mx-auto">
-          <CardHand
-            cards={hand}
-            isMyTurn={isMyTurn}
-            selectedCardId={selectedCardId}
-          />
-        </div>
+          {/* Current turn indicator */}
+          <AnimatePresence mode="wait">
+            {isMyTurn ? (
+              <motion.div
+                key="your-turn"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1    }}
+                exit={{    opacity: 0, scale: 0.95  }}
+                className="bg-gradient-to-r from-mayhem-primary to-red-400
+                           rounded-2xl p-4 text-center text-white"
+              >
+                <p className="font-display font-bold text-lg">
+                  🎯 Your Turn!
+                </p>
+                <p className="font-body text-sm opacity-90">
+                  Pick a meme card from your hand
+                </p>
+              </motion.div>
+            ) : currentPlayer ? (
+              <motion.div
+                key="other-turn"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{    opacity: 0 }}
+                className="bg-mayhem-surface rounded-2xl p-4 text-center"
+              >
+                <p className="font-body text-gray-500 text-sm">
+                  <span className="font-semibold text-gray-700">
+                    {currentPlayer.nickname}
+                  </span>
+                  {' '}is picking a card...
+                </p>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Revealed Cards */}
+          <div>
+            <p className="font-display font-bold text-gray-700 text-sm mb-3">
+              Played Cards
+            </p>
+            <CardReveal
+              cardPlays={currentRound.cardPlays}
+              myPlayerId={playerId ?? ''}
+            />
+          </div>
+
+          {/* Card Hand — inline, no fixed bar */}
+          <div className="mt-auto pt-4 bg-white/95 rounded-2xl border border-gray-100 px-4 py-3">
+            <CardHand
+              cards={hand}
+              isMyTurn={isMyTurn}
+              selectedCardId={selectedCardId}
+            />
+          </div>
+
+        </main>
+
+        {/* RIGHT — Vote sidebar */}
+        <aside className="flex flex-col gap-4">
+          {latestCardPlay && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+              <p className="text-xs font-body text-gray-400 uppercase tracking-widest mb-3">
+                Vote
+              </p>
+              <p className="font-body font-semibold text-gray-700 text-sm mb-3 truncate">
+                {latestCardPlay.playerName}
+              </p>
+              <VotePanel
+                cardPlay={latestCardPlay}
+                myPlayerId={playerId ?? ''}
+              />
+            </div>
+          )}
+        </aside>
+
       </div>
 
       {/* Round Results Overlay */}

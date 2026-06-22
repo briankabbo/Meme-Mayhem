@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import type { CardPlay } from '../../types/game'
-import VotePanel from './VotePanel'
 
 interface Props {
   cardPlays: CardPlay[]
@@ -65,46 +64,32 @@ export default function CardReveal({
               </span>
             </div>
 
-            {/* Card content */}
-            <div className="flex gap-4 p-4">
-              {/* Meme image */}
-              <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-50">
+            {/* Card image only — no label text */}
+            <div className="p-3">
+              <div className="w-full rounded-xl overflow-hidden bg-gray-50">
                 <img
                   src={cardPlay.card.imageUrl}
                   alt={cardPlay.card.label}
-                  className="w-full h-full object-cover"
+                  className="w-full object-cover"
                 />
               </div>
 
-              {/* Right side */}
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-sm text-gray-600 mb-3 leading-tight">
-                  {cardPlay.card.label}
-                </p>
-
-                {/* Voter names */}
-                {cardPlay.votes.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {cardPlay.votes.map(vote => (
-                      <span
-                        key={vote.voterId}
-                        className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-body"
-                      >
-                        {vote.voterName} {
-                          vote.voteType === 'Haha' ? '😂' :
-                          vote.voteType === 'Lmao' ? '💀' : '😐'
-                        }
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* Vote buttons */}
-                <VotePanel
-                  cardPlay={cardPlay}
-                  myPlayerId={myPlayerId}
-                />
-              </div>
+              {/* Voter pills */}
+              {cardPlay.votes.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {cardPlay.votes.map(vote => (
+                    <span
+                      key={vote.voterId}
+                      className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-body"
+                    >
+                      {vote.voterName} {
+                        vote.voteType === 'Haha' ? '😂' :
+                        vote.voteType === 'Lmao' ? '💀' : '😐'
+                      }
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </motion.div>
         ))}

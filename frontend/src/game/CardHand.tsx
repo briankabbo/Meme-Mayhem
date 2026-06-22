@@ -13,7 +13,7 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <span className="font-display font-bold text-gray-700 text-sm">
           Your Hand
         </span>
@@ -28,7 +28,8 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      {/* Cards — flex row, each card takes equal share, no scroll */}
+      <div className="flex gap-2">
         <AnimatePresence>
           {cards.map((card, index) => {
             const isSelected = selectedCardId === card.id
@@ -54,7 +55,7 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
                     submitCard(card.id)
                 }}
                 className={`
-                  relative flex-shrink-0 w-28 rounded-2xl overflow-hidden
+                  relative flex-1 min-w-0 rounded-2xl overflow-hidden
                   border-2 transition-all duration-200
                   ${isMyTurn && !selectedCardId
                     ? 'cursor-pointer'
@@ -68,7 +69,7 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
                   }
                 `}
               >
-                {/* Meme Image */}
+                {/* Meme Image only — no label */}
                 <div className="aspect-square bg-gray-50">
                   <img
                     src={card.imageUrl}
@@ -78,19 +79,12 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
                   />
                 </div>
 
-                {/* Label */}
-                <div className="p-2 bg-white">
-                  <p className="text-xs font-body text-gray-600 text-center leading-tight truncate">
-                    {card.label}
-                  </p>
-                </div>
-
                 {/* Selected overlay */}
                 {isSelected && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="absolute inset-0 bg-mayhem-primary/10 
+                    className="absolute inset-0 bg-mayhem-primary/10
                                flex items-center justify-center"
                   >
                     <span className="text-2xl">✅</span>

@@ -16,28 +16,29 @@ const VOTE_OPTIONS: { type: VoteType; emoji: string; label: string; points: stri
 export default function VotePanel({ cardPlay, myPlayerId }: Props) {
   const { submitVote } = useGame()
 
-  const isOwnCard   = cardPlay.playerId === myPlayerId
-  const myVote      = cardPlay.votes.find(v => v.voterId === myPlayerId)
-  const hasVoted    = !!myVote
+  const isOwnCard = cardPlay.playerId === myPlayerId
+  const myVote    = cardPlay.votes.find(v => v.voterId === myPlayerId)
+  const hasVoted  = !!myVote
 
   const voteCount = (type: VoteType) =>
     cardPlay.votes.filter(v => v.voteType === type).length
 
   return (
-    <div className="flex gap-2 mt-2">
+    // Vertical stacked layout for the right sidebar
+    <div className="flex flex-col gap-2">
       {VOTE_OPTIONS.map(opt => {
-        const count      = voteCount(opt.type)
-        const isMyVote   = myVote?.voteType === opt.type
-        const canVote    = !isOwnCard && !hasVoted
+        const count    = voteCount(opt.type)
+        const isMyVote = myVote?.voteType === opt.type
+        const canVote  = !isOwnCard && !hasVoted
 
         return (
           <motion.button
             key={opt.type}
-            whileHover={canVote ? { scale: 1.05 } : {}}
-            whileTap={canVote   ? { scale: 0.95 } : {}}
+            whileHover={canVote ? { scale: 1.03 } : {}}
+            whileTap={canVote   ? { scale: 0.97 } : {}}
             onClick={() => canVote && submitVote(cardPlay.id, opt.type)}
             className={`
-              flex-1 flex flex-col items-center py-2 px-1 rounded-xl
+              flex items-center gap-3 w-full px-3 py-2 rounded-xl
               border-2 transition-all duration-200
               ${isMyVote
                 ? 'border-mayhem-primary bg-red-50 shadow-sm'
@@ -48,10 +49,10 @@ export default function VotePanel({ cardPlay, myPlayerId }: Props) {
             `}
           >
             <span className="text-xl">{opt.emoji}</span>
-            <span className="text-xs font-body font-semibold text-gray-600">
+            <span className="flex-1 text-left text-sm font-body font-semibold text-gray-700">
               {opt.label}
             </span>
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1">
               {count > 0 && (
                 <motion.span
                   key={count}
@@ -62,9 +63,7 @@ export default function VotePanel({ cardPlay, myPlayerId }: Props) {
                   {count}
                 </motion.span>
               )}
-              <span className="text-xs text-gray-400 font-body">
-                {opt.points}
-              </span>
+              <span className="text-xs text-gray-400 font-body">{opt.points}</span>
             </div>
           </motion.button>
         )

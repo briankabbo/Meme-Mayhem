@@ -4,9 +4,9 @@ namespace MemeMayhem.Core.Entities;
 public class MemeCard
 {
     public Guid Id { get; set; }
-    public string ExternalId { get; set; } = string.Empty;  // Imgflip/Tenor ID
+    public string ExternalId { get; set; } = string.Empty;
     public string Label { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = string.Empty;    // Azure Blob URL
+    public string StoragePath { get; set; } = string.Empty;
     public CardSource Source { get; set; }
     public string Tags { get; set; } = "[]";                // JSON array
     public bool IsNsfw { get; set; } = false;

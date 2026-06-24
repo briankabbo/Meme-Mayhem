@@ -1,4 +1,4 @@
-// GameService.cs
+using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using MemeMayhem.Core.DTOs;
 using MemeMayhem.Core.Entities;
@@ -143,7 +143,7 @@ public class GameService : IGameService
             {
                 Id = card.Id,
                 Label = card.Label,
-                ImageUrl = card.ImageUrl
+                ImageUrl = card.StoragePath
             },
             Votes = new List<VoteDto>()
         };
@@ -178,7 +178,7 @@ public class GameService : IGameService
         {
             VoteType.Haha => 1,
             VoteType.Lmao => 5,
-            VoteType.Meh  => 0,
+            VoteType.Meh => 0,
             _ => 0
         };
 
@@ -398,7 +398,7 @@ public class GameService : IGameService
             {
                 Id = pc.MemeCard.Id,
                 Label = pc.MemeCard.Label,
-                ImageUrl = pc.MemeCard.ImageUrl
+                ImageUrl = pc.MemeCard.StoragePath
             })
             .ToListAsync();
     }

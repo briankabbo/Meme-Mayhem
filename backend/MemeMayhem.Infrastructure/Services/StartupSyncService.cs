@@ -1,4 +1,5 @@
 using MemeMayhem.Core.Interfaces;
+using MemeMayhem.Infrastructure.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,16 +23,14 @@ public class StartupSyncService : IHostedService
     {
         _logger.LogInformation("Running startup sync...");
 
-        // Create a scope so we can resolve scoped services
         using var scope = _scopeFactory.CreateScope();
 
-        var memeCardService = scope.ServiceProvider
-            .GetRequiredService<IMemeCardService>();
+        // Seed custom meme cards
+        var seeder = scope.ServiceProvider.GetRequiredService<DbSeeder>();
+        await seeder.SeedMemeCardsAsync();
 
-        var giphyService = scope.ServiceProvider
-            .GetRequiredService<IGiphyService>();
-
-        await memeCardService.SyncImgflipDeckAsync();
+        // Sync Giphy reaction GIFs
+        var giphyService = scope.ServiceProvider.GetRequiredService<IGiphyService>();
         await giphyService.SyncReactionGifsAsync();
 
         _logger.LogInformation("Startup sync complete.");

@@ -69,7 +69,7 @@ public class MemeCardService : IMemeCardService
                     Id = Guid.NewGuid(),
                     ExternalId = externalId,
                     Label = memeName,
-                    ImageUrl = memeUrl,
+                    StoragePath = memeUrl,
                     Source = CardSource.Imgflip,
                     CreatedAt = DateTime.UtcNow
                 });

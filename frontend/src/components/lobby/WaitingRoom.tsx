@@ -12,7 +12,7 @@ const THEME_LABELS: Record<string, string> = {
 }
 
 export default function WaitingRoom() {
-  const { state, startGame } = useGame()
+  const { state, startGame, clearError } = useGame()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -159,6 +159,23 @@ export default function WaitingRoom() {
             )}
           </div>
         </motion.div>
+
+        {/* Error */}
+        {state.error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-center"
+          >
+            <p className="text-red-600 text-sm font-body">{state.error}</p>
+            <button
+              onClick={clearError}
+              className="mt-2 text-xs text-red-400 hover:text-red-600 font-body"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
 
         {/* Start Button — host only */}
         {state.isHost && (

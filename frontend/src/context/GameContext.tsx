@@ -3,10 +3,11 @@ import {
   useContext,
   useReducer,
   type ReactNode,
-  useState
+  useState,
 } from 'react'
 import * as signalR from '@microsoft/signalr'
 import type { GameState, GameAction, Player, CardPlay } from '../../types/game'
+import { useSignalR } from '../hooks/useSignalR'
 
 const initialState: GameState = {
   isConnected: false,
@@ -84,7 +85,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'ROUND_STARTED':
       return {
         ...state,
-        currentRound: action.payload,
+        roomStatus: 'Active',
+        currentRound: {
+          ...action.payload,
+          cardPlays: action.payload.cardPlays ?? [],
+        },
         currentRoundNumber: action.payload.roundNumber,
         roundResults: null,
         isMyTurn: false,
@@ -169,6 +174,9 @@ const GameContext = createContext<{
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
+
+  useSignalR({ state, dispatch, connection, setConnection })
+
   return (
     <GameContext.Provider value={{ state, dispatch, connection, setConnection }}>
       {children}

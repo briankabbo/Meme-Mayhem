@@ -271,18 +271,26 @@ public class GameHub : Hub
 
             var round = await _gameService.StartGameAsync(roomId);
 
-            await Clients.Group(roomId.ToString())
-                .SendAsync("GameStarted", new { RoomId = roomId });
-
-            // Deal hands privately to each player
-            await DealHandsToPlayersAsync(roomId);
-
-            // Start first round
+            // Notify clients immediately so the UI can transition
             await Clients.Group(roomId.ToString())
                 .SendAsync("RoundStarted", round);
 
+            // Deal hands privately to each player (non-blocking for game start)
+            try
+            {
+                await DealHandsToPlayersAsync(roomId);
+            }
+            catch (Exception dealEx)
+            {
+                await Clients.Caller.SendAsync("Error",
+                    $"Game started but failed to deal cards: {dealEx.Message}");
+            }
+
             // Notify first player it's their turn
             await NotifyCurrentPlayerAsync(round);
+
+            await Clients.Group(roomId.ToString())
+                .SendAsync("GameStarted", new { RoomId = roomId });
         }
         catch (Exception ex)
         {

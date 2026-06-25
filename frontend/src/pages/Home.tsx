@@ -36,7 +36,6 @@ export default function Home() {
 
   const handleCreate = async () => {
     if (!nickname.trim()) return
-    console.log('handleCreate called', { nickname, theme, rounds })
     setLoading(true)
     await createRoom(nickname.trim(), theme, rounds)
     setLoading(false)

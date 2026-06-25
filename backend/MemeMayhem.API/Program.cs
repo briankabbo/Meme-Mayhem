@@ -3,6 +3,7 @@ using MemeMayhem.Core.Interfaces;
 using MemeMayhem.Infrastructure.Data;
 using MemeMayhem.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,11 @@ builder.Services.AddHttpClient<SupabaseStorageService>();
 builder.Services.AddHostedService<StartupSyncService>();
 
 // SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 // CORS for React frontend
 builder.Services.AddCors(options =>

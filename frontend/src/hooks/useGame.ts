@@ -26,8 +26,14 @@ export function useGame() {
       invoke('CreateRoom', nickname, theme, rounds),
     joinRoom: (code: string, nickname: string) =>
       invoke('JoinRoom', code, nickname),
-    startGame: () =>
-      invoke('StartGame', state.roomId),
+    startGame: () => {
+      if (!state.roomId) {
+        dispatch({ type: 'SET_ERROR', payload: 'Room not ready — try rejoining' })
+        return
+      }
+      dispatch({ type: 'CLEAR_ERROR' })
+      return invoke('StartGame', state.roomId)
+    },
     submitCard: (cardId: string) => {
       dispatch({ type: 'SELECT_CARD', payload: cardId })
       invoke('SubmitCard', state.currentRound?.id, cardId)

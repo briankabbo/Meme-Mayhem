@@ -77,7 +77,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case 'GAME_STARTED':
-      return state
+      return { ...state, roomStatus: 'Active' }
 
     case 'HAND_DEALT':
       return { ...state, hand: action.payload }
@@ -86,7 +86,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         roomStatus: 'Active',
-        currentRound: action.payload,
+        currentRound: {
+          ...action.payload,
+          cardPlays: action.payload.cardPlays ?? [],
+        },
         currentRoundNumber: action.payload.roundNumber,
         roundResults: null,
         isMyTurn: false,

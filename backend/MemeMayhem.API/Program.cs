@@ -15,11 +15,12 @@ builder.Services.AddDbContext<MemeMayhemDbContext>(options =>
 // Services
 builder.Services.AddScoped<IRoomService, RoomService>();
 builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddScoped<DbSeeder>();
 
 builder.Services.AddHttpClient<IAIPromptService, AIPromptService>();
-
 builder.Services.AddHttpClient<IGiphyService, GiphyService>();
-builder.Services.AddHttpClient<IMemeCardService, MemeCardService>();
+builder.Services.AddHttpClient<SupabaseStorageService>();
+
 builder.Services.AddHostedService<StartupSyncService>();
 
 // SignalR

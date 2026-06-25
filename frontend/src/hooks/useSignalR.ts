@@ -1,11 +1,18 @@
 import { useEffect, useRef, useCallback } from 'react'
 import * as signalR from '@microsoft/signalr'
-import { useGameContext } from '../context/GameContext'
+import type { GameAction, GameState } from '../../types/game'
 
 const HUB_URL = 'http://localhost:5235/hubs/game'
 
-export function useSignalR() {
-  const { state, dispatch, connection, setConnection } = useGameContext()
+type UseSignalRArgs = {
+  state: GameState
+  dispatch: React.Dispatch<GameAction>
+  connection: signalR.HubConnection | null
+  setConnection: (conn: signalR.HubConnection | null) => void
+}
+
+export function useSignalR({ state, dispatch, connection, setConnection }: UseSignalRArgs) {
+  const connectingRef = useRef(false)
   const stateRef = useRef(state)
 
   useEffect(() => {
@@ -13,55 +20,57 @@ export function useSignalR() {
   }, [state])
 
   const connect = useCallback(async () => {
-    if (connection) return
+    if (connection || connectingRef.current) return
 
-    console.log('Connecting to SignalR...')
+    connectingRef.current = true
+
     const conn = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL)
       .withAutomaticReconnect()
       .build()
 
     conn.on('RoomCreated', (data) => {
-      console.log('RoomCreated event received:', data)
-      dispatch({
-        type: 'ROOM_CREATED',
-        payload: data
-      })
+      dispatch({ type: 'ROOM_CREATED', payload: data })
     })
 
     conn.on('RoomJoined', (data) => {
-      console.log('RoomJoined event received:', data)
-      dispatch({
-        type: 'ROOM_JOINED',
-        payload: data
-      })
+      dispatch({ type: 'ROOM_JOINED', payload: data })
     })
 
-    conn.on('PlayerJoined', d => dispatch({ type: 'PLAYER_JOINED', payload: d }))
-    conn.on('PlayerDisconnected', d => dispatch({ type: 'PLAYER_LEFT', payload: d.playerId }))
-    conn.on('HostChanged', d => dispatch({ type: 'HOST_CHANGED', payload: d.newHostId }))
+    conn.on('PlayerJoined', (data) =>
+      dispatch({ type: 'PLAYER_JOINED', payload: data }))
+    conn.on('PlayerDisconnected', (data) =>
+      dispatch({ type: 'PLAYER_LEFT', payload: data.playerId }))
+    conn.on('HostChanged', (data) =>
+      dispatch({ type: 'HOST_CHANGED', payload: data.newHostId }))
     conn.on('GameStarted', () => dispatch({ type: 'GAME_STARTED' }))
-    conn.on('HandDealt', d => dispatch({ type: 'HAND_DEALT', payload: d }))
-    conn.on('RoundStarted', d => dispatch({ type: 'ROUND_STARTED', payload: d }))
+    conn.on('HandDealt', (data) =>
+      dispatch({ type: 'HAND_DEALT', payload: data }))
+    conn.on('RoundStarted', (data) =>
+      dispatch({ type: 'ROUND_STARTED', payload: data }))
     conn.on('YourTurn', () => dispatch({ type: 'YOUR_TURN' }))
-    conn.on('CardRevealed', d => dispatch({ type: 'CARD_REVEALED', payload: d }))
-    conn.on('VoteReceived', d => dispatch({ type: 'VOTE_RECEIVED', payload: d }))
-    conn.on('TurnEnded', d => dispatch({ type: 'TURN_ENDED', payload: d }))
-    conn.on('TurnSkipped', d => dispatch({ type: 'TURN_SKIPPED', payload: d.playerId }))
-    conn.on('RoundEnded', d => dispatch({ type: 'ROUND_ENDED', payload: d }))
-    conn.on('NewCardDealt', d => dispatch({ type: 'NEW_CARD_DEALT', payload: d }))
-    conn.on('GameOver', d => dispatch({ type: 'GAME_OVER', payload: d.finalScores }))
-    conn.on('Error', d => dispatch({ type: 'SET_ERROR', payload: d }))
+    conn.on('CardRevealed', (data) =>
+      dispatch({ type: 'CARD_REVEALED', payload: data }))
+    conn.on('VoteReceived', (data) =>
+      dispatch({ type: 'VOTE_RECEIVED', payload: data }))
+    conn.on('RoundEnded', (data) =>
+      dispatch({ type: 'ROUND_ENDED', payload: data }))
+    conn.on('NewCardDealt', (data) =>
+      dispatch({ type: 'NEW_CARD_DEALT', payload: data }))
+    conn.on('GameOver', (data) =>
+      dispatch({ type: 'GAME_OVER', payload: data.finalScores }))
+    conn.on('Error', (message) =>
+      dispatch({ type: 'SET_ERROR', payload: message }))
 
-    conn.onreconnecting(() => dispatch({ type: 'SET_CONNECTED', payload: false }))
-    
+    conn.onreconnecting(() =>
+      dispatch({ type: 'SET_CONNECTED', payload: false }))
+
     conn.onreconnected(async () => {
       dispatch({ type: 'SET_CONNECTED', payload: true })
       const { roomCode, playerId } = stateRef.current
       if (roomCode && playerId) {
         try {
           await conn.invoke('Reconnect', roomCode, playerId)
-          console.log('Reconnected successfully to room:', roomCode)
         } catch (err) {
           console.error('Failed to reconnect player:', err)
         }
@@ -76,14 +85,12 @@ export function useSignalR() {
       setConnection(conn)
     } catch (err) {
       console.error('Failed to start SignalR connection:', err)
+    } finally {
+      connectingRef.current = false
     }
   }, [connection, dispatch, setConnection])
 
   useEffect(() => {
     connect()
   }, [connect])
-
-  const connectionRef = useRef<signalR.HubConnection | null>(null)
-  connectionRef.current = connection
-  return connectionRef
 }

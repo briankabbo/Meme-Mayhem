@@ -271,18 +271,17 @@ public class GameHub : Hub
 
             var round = await _gameService.StartGameAsync(roomId);
 
-            await Clients.Group(roomId.ToString())
-                .SendAsync("GameStarted", new { RoomId = roomId });
-
             // Deal hands privately to each player
             await DealHandsToPlayersAsync(roomId);
 
-            // Start first round
             await Clients.Group(roomId.ToString())
                 .SendAsync("RoundStarted", round);
 
             // Notify first player it's their turn
             await NotifyCurrentPlayerAsync(round);
+
+            await Clients.Group(roomId.ToString())
+                .SendAsync("GameStarted", new { RoomId = roomId });
         }
         catch (Exception ex)
         {

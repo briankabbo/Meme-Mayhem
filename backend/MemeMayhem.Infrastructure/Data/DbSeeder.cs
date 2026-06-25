@@ -58,7 +58,7 @@ public class DbSeeder
                     ExternalId = card.Id,
                     Label = card.Label,
                     StoragePath = card.StoragePath,
-                    Tags = JsonSerializer.Serialize(card.Tags),
+                    Tags = "[]",
                     Source = CardSource.Custom,
                     CreatedAt = DateTime.UtcNow
                 });

@@ -269,34 +269,37 @@ public class GameHub : Hub
                 return;
             }
 
+            // 1. Start game internally — deals cards to DB
             var round = await _gameService.StartGameAsync(roomId);
 
-            // Notify clients immediately so the UI can transition
-            await Clients.Group(roomId.ToString())
-                .SendAsync("RoundStarted", round);
-
-            // Deal hands privately to each player (non-blocking for game start)
+            // 2. Deal hands privately first
             try
             {
                 await DealHandsToPlayersAsync(roomId);
             }
             catch (Exception dealEx)
             {
-                await Clients.Caller.SendAsync("Error",
-                    $"Game started but failed to deal cards: {dealEx.Message}");
+                await Clients.Caller.SendAsync("Error", $"Deal failed: {dealEx.Message}");
+                return;
             }
 
-            // Notify first player it's their turn
-            await NotifyCurrentPlayerAsync(round);
+            // 3. Send RoundStarted — currentRound is set BEFORE UI transitions
+            await Clients.Group(roomId.ToString())
+                .SendAsync("RoundStarted", round);
 
+            // 4. Send GameStarted LAST — UI transitions with data already ready
             await Clients.Group(roomId.ToString())
                 .SendAsync("GameStarted", new { RoomId = roomId });
+
+            // 5. Notify first player it's their turn
+            await NotifyCurrentPlayerAsync(round);
         }
         catch (Exception ex)
         {
             await Clients.Caller.SendAsync("Error", ex.Message);
         }
     }
+
 
     public async Task SubmitCard(Guid roundId, Guid cardId)
     {
@@ -375,7 +378,7 @@ public class GameHub : Hub
     {
         // Get round from cardplay
         var cardPlay = await _gameService.GetCardPlayWithRoundAsync(cardPlayId);
-    if (cardPlay == null) return;
+        if (cardPlay == null) return;
 
         var round = cardPlay.Round;
 
@@ -570,31 +573,31 @@ public class GameHub : Hub
         }
     }
 
-private async Task<CardPlayWithRoundDto?> GetCardPlayWithRoundAsync(Guid cardPlayId)
-{
-    return await _gameService.GetCardPlayWithRoundAsync(cardPlayId);
-}
+    private async Task<CardPlayWithRoundDto?> GetCardPlayWithRoundAsync(Guid cardPlayId)
+    {
+        return await _gameService.GetCardPlayWithRoundAsync(cardPlayId);
+    }
 
-private async Task<RoundDto?> GetRoundDtoAsync(Guid roundId)
-{
-    return await _gameService.GetRoundDtoAsync(roundId);
-}
+    private async Task<RoundDto?> GetRoundDtoAsync(Guid roundId)
+    {
+        return await _gameService.GetRoundDtoAsync(roundId);
+    }
 
-private async Task<Room?> GetRoomAsync(Guid roomId)
-{
-    return await _roomService.GetRoomByIdAsync(roomId);
-}
+    private async Task<Room?> GetRoomAsync(Guid roomId)
+    {
+        return await _roomService.GetRoomByIdAsync(roomId);
+    }
 
-private async Task<Player?> GetNewHostAsync(Guid roomId)
-{
-    var players = await _roomService.GetActivePlayersAsync(roomId);
-    return players.FirstOrDefault(p => p.IsHost);
-}
+    private async Task<Player?> GetNewHostAsync(Guid roomId)
+    {
+        var players = await _roomService.GetActivePlayersAsync(roomId);
+        return players.FirstOrDefault(p => p.IsHost);
+    }
 
-private async Task<List<Player>> GetActivePlayersAsync(Guid roomId)
-{
-    return await _roomService.GetActivePlayersAsync(roomId);
-}
+    private async Task<List<Player>> GetActivePlayersAsync(Guid roomId)
+    {
+        return await _roomService.GetActivePlayersAsync(roomId);
+    }
 
 
 }

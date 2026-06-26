@@ -28,6 +28,9 @@ public class SupabaseStorageService
     {
         var endpoint = $"{_supabaseUrl}/storage/v1/object/sign/{_bucket}/{storagePath}";
 
+        _logger.LogInformation("Requesting signed URL for: {Path}", storagePath);
+        _logger.LogInformation("Endpoint: {Endpoint}", endpoint);
+
         var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         request.Headers.Add("Authorization", $"Bearer {_serviceRoleKey}");
         request.Content = new StringContent(
@@ -37,7 +40,14 @@ public class SupabaseStorageService
         );
 
         var response = await _http.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Supabase error {Status}: {Body}",
+                response.StatusCode, errorBody);
+            throw new Exception($"Supabase {response.StatusCode}: {errorBody}");
+        }
 
         var json = await response.Content.ReadAsStringAsync();
         var parsed = JsonDocument.Parse(json);

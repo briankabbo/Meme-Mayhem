@@ -83,7 +83,7 @@ export default function GameBoard() {
 
       {/* Main Content */}
       <div className="flex-1 grid grid-cols-[220px_1fr] gap-4
-                      max-w-screen-xl mx-auto w-full px-4 py-4">
+                max-w-screen-xl mx-auto w-full px-4 py-4 min-h-0">
 
         {/* LEFT — Leaderboard */}
         <aside>
@@ -106,8 +106,8 @@ export default function GameBoard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 className="flex items-center justify-center gap-2
-                           bg-mayhem-primary/10 border border-mayhem-primary/20
-                           rounded-xl py-2 px-4"
+                     bg-mayhem-primary/10 border border-mayhem-primary/20
+                     rounded-xl py-2 px-4"
               >
                 <motion.span
                   animate={{ scale: [1, 1.2, 1] }}
@@ -137,8 +137,9 @@ export default function GameBoard() {
             ) : null}
           </AnimatePresence>
 
-          {/* Spotlight Card Reveal */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex-1">
+          {/* Spotlight Card Reveal — constrained height */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"
+            style={{ maxHeight: '420px', overflow: 'hidden' }}>
             <CardReveal
               cardPlays={currentRound.cardPlays}
               myPlayerId={playerId ?? ''}
@@ -154,7 +155,7 @@ export default function GameBoard() {
             />
           </div>
 
-          {/* Card Hand */}
+          {/* Card Hand — always visible, pinned */}
           <motion.div
             animate={isMyTurn ? {
               boxShadow: [
@@ -164,8 +165,11 @@ export default function GameBoard() {
               ]
             } : { boxShadow: '0 0 0 0 rgba(255,107,107,0)' }}
             transition={{ duration: 1.5, repeat: isMyTurn ? Infinity : 0 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3"
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3 mt-auto"
           >
+            <p className="font-display font-bold text-gray-700 text-base mb-2">
+              Your Hand
+            </p>
             <CardHand
               cards={hand}
               isMyTurn={isMyTurn}

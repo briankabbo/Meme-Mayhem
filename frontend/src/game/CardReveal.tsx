@@ -84,7 +84,7 @@ export default function CardReveal({ cardPlays, myPlayerId, totalPlayers }: Prop
                   `}>
                     {active.playerName[0].toUpperCase()}
                   </div>
-                  <span className="font-body font-semibold text-gray-700 text-sm">
+                  <span className="font-body font-semibold text-gray-700 text-base">
                     {active.playerName}
                     {active.playerId === myPlayerId && (
                       <span className="ml-1 text-xs text-gray-400 font-normal">you</span>
@@ -95,12 +95,13 @@ export default function CardReveal({ cardPlays, myPlayerId, totalPlayers }: Prop
                   </span>
                 </div>
 
-                {/* Card image — fixed height spotlight */}
-                <div className="w-full aspect-[4/3] bg-gray-50">
+                {/* Card image — capped height */}
+                <div className="w-full bg-gray-50" style={{ maxHeight: '260px' }}>
                   <img
                     src={active.card.imageUrl}
                     alt={active.card.label}
                     className="w-full h-full object-contain"
+                    style={{ maxHeight: '260px' }}
                   />
                 </div>
 

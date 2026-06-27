@@ -423,17 +423,11 @@ public class GameHub : Hub
         await Clients.Group(roomId.ToString())
             .SendAsync("RoundEnded", results);
 
-        // Deal new cards to each player
-        await DrawNewCardsAsync(roomId);
-
         // Short delay for results display
         await Task.Delay(TimeSpan.FromSeconds(5));
 
-        // Check game over
-        var room = await GetRoomAsync(roomId);
-        if (room == null) return;
-
-        if (room.CurrentRound >= room.TotalRounds)
+        // Check game over BEFORE drawing new cards
+        if (results.IsGameOver)
         {
             await Clients.Group(roomId.ToString())
                 .SendAsync("GameOver", new
@@ -443,8 +437,14 @@ public class GameHub : Hub
             return;
         }
 
+        // Only draw new cards if game continues
+        await DrawNewCardsAsync(roomId);
+
         // Start next round
         var nextRound = await _gameService.StartNextRoundAsync(roomId);
+
+        // Deal new hands before showing next round
+        await DealHandsToPlayersAsync(roomId);
 
         await Clients.Group(roomId.ToString())
             .SendAsync("RoundStarted", nextRound);

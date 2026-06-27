@@ -11,12 +11,14 @@ import type { Player, CardPlay } from '../../types/game'
 
 export default function GameBoard() {
   const { state } = useGame()
-  const { currentRound, hand, players, playerId,
-          selectedCardId, isMyTurn, roundResults } = state
+  const {
+    currentRound, hand, players, playerId,
+    selectedCardId, isMyTurn, roundResults
+  } = state
 
   if (!currentRound) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <motion.div
           animate={{ opacity: [1, 0.4, 1] }}
           transition={{ duration: 1.5, repeat: Infinity }}
@@ -31,153 +33,147 @@ export default function GameBoard() {
   const currentPlayer = players.find(
     (p: Player) => p.id === currentRound.currentPlayerId)
 
-  // Most-recently revealed card for the vote sidebar
   const latestCardPlay: CardPlay | null =
     currentRound.cardPlays.length > 0
       ? currentRound.cardPlays[currentRound.cardPlays.length - 1]
       : null
 
+  const activePlayers = players.filter((p: Player) => !p.isSpectator)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mayhem-surface via-white to-blue-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* Top Bar */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
-        <div className="flex items-center justify-between max-w-screen-xl mx-auto">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center justify-between max-w-screen-xl mx-auto gap-4">
 
           {/* Round info */}
-          <div>
-            <p className="font-display font-bold text-gray-800 text-sm">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="font-display font-bold text-gray-800 text-sm">
               Round {currentRound.roundNumber}
-              <span className="text-gray-400 font-body font-normal ml-1">
-                / {state.totalRounds}
-              </span>
-            </p>
-            <p className="text-xs text-gray-400 font-body">
-              Turn {currentRound.currentTurnIndex + 1} of {currentRound.totalTurns}
-            </p>
+            </span>
+            <span className="text-gray-300">/</span>
+            <span className="text-gray-400 font-body text-sm">
+              {state.totalRounds}
+            </span>
+            <span className="ml-1 text-xs text-gray-300 font-body">
+              · Turn {currentRound.currentTurnIndex + 1} of {currentRound.totalTurns}
+            </span>
           </div>
 
-          {/* Timer — only show on current player's turn */}
-          {isMyTurn && (
-            <TurnTimer seconds={15} />
-          )}
+          {/* Prompt — centered */}
+          <p className="flex-1 text-center font-display font-bold text-gray-800
+                        text-sm leading-snug line-clamp-2 px-4">
+            {currentRound.promptText}
+          </p>
 
-          {/* Player count */}
-          <div className="flex items-center gap-1 text-gray-400">
-            <Users className="w-4 h-4" />
-            <span className="text-sm font-body">
-              {players.filter((p: Player) => !p.isSpectator).length}
-            </span>
+          {/* Right — timer + player count */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {isMyTurn && <TurnTimer seconds={15} />}
+            <div className="flex items-center gap-1 text-gray-400">
+              <Users className="w-4 h-4" />
+              <span className="text-sm font-body">
+                {activePlayers.length}
+              </span>
+            </div>
           </div>
 
         </div>
       </div>
 
-      {/* 3-Column Layout */}
-      <div className="flex-1 grid grid-cols-[240px_1fr_240px] gap-4 max-w-screen-xl mx-auto w-full px-4 py-4">
+      {/* Main Content */}
+      <div className="flex-1 grid grid-cols-[220px_1fr] gap-4
+                      max-w-screen-xl mx-auto w-full px-4 py-4">
 
-        {/* LEFT — Scoreboard sidebar */}
-        <aside className="flex flex-col gap-4">
+        {/* LEFT — Leaderboard */}
+        <aside>
           <ScoreBoard
             players={players}
             myPlayerId={playerId ?? ''}
+            currentPlayerId={currentRound.currentPlayerId}
           />
         </aside>
 
-        {/* CENTER — Main game area */}
-        <main className="flex flex-col gap-4 min-w-0">
+        {/* CENTER — Main game */}
+        <main className="flex flex-col gap-3 min-w-0">
 
-          {/* Prompt */}
-          <motion.div
-            key={currentRound.id}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0   }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
-          >
-            <p className="text-xs font-body text-gray-400 uppercase tracking-widest mb-2">
-              Prompt
-            </p>
-            <p className="font-display font-bold text-gray-800 text-lg leading-snug">
-              {currentRound.promptText}
-            </p>
-          </motion.div>
-
-          {/* Current turn indicator */}
+          {/* Turn indicator */}
           <AnimatePresence mode="wait">
             {isMyTurn ? (
               <motion.div
-                key="your-turn"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1    }}
-                exit={{    opacity: 0, scale: 0.95  }}
-                className="bg-gradient-to-r from-mayhem-primary to-red-400
-                           rounded-2xl p-4 text-center text-white"
+                key="my-turn"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex items-center justify-center gap-2
+                           bg-mayhem-primary/10 border border-mayhem-primary/20
+                           rounded-xl py-2 px-4"
               >
-                <p className="font-display font-bold text-lg">
-                  🎯 Your Turn!
-                </p>
-                <p className="font-body text-sm opacity-90">
-                  Pick a meme card from your hand
-                </p>
+                <motion.span
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  🎯
+                </motion.span>
+                <span className="font-display font-bold text-mayhem-primary text-sm">
+                  Your Turn — pick a card!
+                </span>
               </motion.div>
             ) : currentPlayer ? (
               <motion.div
                 key="other-turn"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{    opacity: 0 }}
-                className="bg-mayhem-surface rounded-2xl p-4 text-center"
+                exit={{ opacity: 0 }}
+                className="text-center py-2"
               >
-                <p className="font-body text-gray-500 text-sm">
-                  <span className="font-semibold text-gray-700">
+                <span className="text-sm font-body text-gray-400">
+                  <span className="font-semibold text-gray-600">
                     {currentPlayer.nickname}
                   </span>
                   {' '}is picking a card...
-                </p>
+                </span>
               </motion.div>
             ) : null}
           </AnimatePresence>
 
-          {/* Revealed Cards */}
-          <div>
-            <p className="font-display font-bold text-gray-700 text-sm mb-3">
-              Played Cards
-            </p>
+          {/* Spotlight Card Reveal */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex-1">
             <CardReveal
               cardPlays={currentRound.cardPlays}
+              myPlayerId={playerId ?? ''}
+              totalPlayers={activePlayers.length}
+            />
+          </div>
+
+          {/* Vote Reaction Bar */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+            <VotePanel
+              cardPlay={latestCardPlay}
               myPlayerId={playerId ?? ''}
             />
           </div>
 
-          {/* Card Hand — inline, no fixed bar */}
-          <div className="mt-auto pt-4 bg-white/95 rounded-2xl border border-gray-100 px-4 py-3">
+          {/* Card Hand */}
+          <motion.div
+            animate={isMyTurn ? {
+              boxShadow: [
+                '0 0 0 0 rgba(255,107,107,0)',
+                '0 0 0 4px rgba(255,107,107,0.3)',
+                '0 0 0 0 rgba(255,107,107,0)',
+              ]
+            } : { boxShadow: '0 0 0 0 rgba(255,107,107,0)' }}
+            transition={{ duration: 1.5, repeat: isMyTurn ? Infinity : 0 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3"
+          >
             <CardHand
               cards={hand}
               isMyTurn={isMyTurn}
               selectedCardId={selectedCardId}
             />
-          </div>
+          </motion.div>
 
         </main>
-
-        {/* RIGHT — Vote sidebar */}
-        <aside className="flex flex-col gap-4">
-          {latestCardPlay && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p className="text-xs font-body text-gray-400 uppercase tracking-widest mb-3">
-                Vote
-              </p>
-              <p className="font-body font-semibold text-gray-700 text-sm mb-3 truncate">
-                {latestCardPlay.playerName}
-              </p>
-              <VotePanel
-                cardPlay={latestCardPlay}
-                myPlayerId={playerId ?? ''}
-              />
-            </div>
-          )}
-        </aside>
-
       </div>
 
       {/* Round Results Overlay */}
@@ -186,8 +182,8 @@ export default function GameBoard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{    opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50
                        flex items-center justify-center p-4"
           >
             <RoundResults

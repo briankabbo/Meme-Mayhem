@@ -16,7 +16,7 @@ Play with friends or enemies. No skill required.
 - **5 cards in hand** at all times - draw 1 after each round, reshuffled when the deck runs dry
 - **15 seconds** to pick your meme. Choose wisely. Or don't. You have 15 seconds.
 - **Random turn order** every round - no one is safe, no one sees it coming
-- **Three reactions to cast:** 💀 Lmao (5pts) · 😂 Haha (1pt) · 😐 Meh (0pts)
+- **Three reactions to cast:** 💀 Lmao (10 pts) · 😂 Haha (5 pts) · 😐 Meh (0pts) · 🤔 hmm (1 pts)
 - **Vote while you wait. No self-voting** - we know you think you're funny. Prove it to others.
 - **Auto-skip** on disconnect - the game never stops for one person
 - **Late joiners** drop into spectator mode - watch, laugh, and wait for the next round

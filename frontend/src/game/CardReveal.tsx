@@ -40,7 +40,14 @@ export default function CardReveal({ cardPlays, myPlayerId, totalPlayers }: Prop
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-3">
+
+      {/* Round card browser label — arrows/dots browse cards played this round */}
+      {cardPlays.length > 1 && (
+        <p className="text-xs text-gray-400 font-body">
+          Browse cards played this round
+        </p>
+      )}
 
       {/* Spotlight card */}
       <div className="flex items-center gap-3 w-full">

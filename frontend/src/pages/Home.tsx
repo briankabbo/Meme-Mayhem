@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGame } from '../hooks/useGame'
+import ErrorState from '../components/ui/ErrorState'
 import { Flame, Plus, LogIn } from 'lucide-react'
 
 type Tab = 'create' | 'join'
@@ -17,7 +18,7 @@ const THEMES = [
 
 export default function Home() {
   const navigate = useNavigate()
-  const { state, createRoom, joinRoom } = useGame()
+  const { state, createRoom, joinRoom, clearError } = useGame()
 
   const [tab, setTab] = useState<Tab>('create')
   const [nickname, setNickname] = useState('')
@@ -46,6 +47,12 @@ export default function Home() {
     setLoading(true)
     await joinRoom(roomCode.trim().toUpperCase(), nickname.trim())
     setLoading(false)
+  }
+
+  const handleRetry = () => {
+    clearError()
+    if (tab === 'create') handleCreate()
+    else handleJoin()
   }
 
   return (
@@ -179,12 +186,15 @@ export default function Home() {
 
               {/* Error */}
               {state.error && (
-                <p className="text-red-500 text-sm font-body text-center">
-                  {state.error}
-                </p>
+                <ErrorState
+                  message={state.error}
+                  onRetry={handleRetry}
+                  onBack={clearError}
+                />
               )}
 
               {/* Create Button */}
+              {!state.error && (
               <button
                 onClick={handleCreate}
                 disabled={!nickname.trim() || loading}
@@ -199,10 +209,13 @@ export default function Home() {
               >
                 {loading ? 'Creating...' : 'Create Room 🔥'}
               </button>
+              )}
 
+              {!state.error && (
               <p className="text-center text-xs text-gray-400 font-body">
                 Min 3 players recommended
               </p>
+              )}
             </motion.div>
           )}
 
@@ -254,12 +267,15 @@ export default function Home() {
 
               {/* Error */}
               {state.error && (
-                <p className="text-red-500 text-sm font-body text-center">
-                  {state.error}
-                </p>
+                <ErrorState
+                  message={state.error}
+                  onRetry={handleRetry}
+                  onBack={clearError}
+                />
               )}
 
               {/* Join Button */}
+              {!state.error && (
               <button
                 onClick={handleJoin}
                 disabled={!nickname.trim() || !roomCode.trim() || loading}
@@ -274,10 +290,13 @@ export default function Home() {
               >
                 {loading ? 'Joining...' : 'Join Room 🎮'}
               </button>
+              )}
 
+              {!state.error && (
               <p className="text-center text-xs text-gray-400 font-body">
                 Get the code from your host
               </p>
+              )}
             </motion.div>
           )}
 

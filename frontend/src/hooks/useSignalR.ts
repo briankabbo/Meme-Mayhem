@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import * as signalR from '@microsoft/signalr'
 import type { GameAction, GameState } from '../../types/game'
 
-import { ToastType } from '../components/ui/ToastProvider'
+import type { ToastType } from '../components/ui/ToastProvider'
 
 const HUB_URL = 'http://localhost:5235/hubs/game'
 
@@ -58,6 +58,8 @@ export function useSignalR({ state, dispatch, connection, setConnection, addToas
       const { playerId } = stateRef.current
       if (playerId === data.newHostId) {
         addToast('You are the new host', 'success')
+      } else {
+        addToast(`${data.nickname} is now the host`, 'info')
       }
     })
     conn.on('GameStarted', () => dispatch({ type: 'GAME_STARTED' }))
@@ -70,6 +72,8 @@ export function useSignalR({ state, dispatch, connection, setConnection, addToas
       dispatch({ type: 'CARD_REVEALED', payload: data }))
     conn.on('VoteTimerStarted', (data) =>
       dispatch({ type: 'VOTE_TIMER_STARTED', payload: data.seconds }))
+    conn.on('TurnStarted', (data) =>
+      dispatch({ type: 'TURN_STARTED', payload: data }))
     conn.on('TurnEnded', (data) =>
       dispatch({ type: 'TURN_ENDED', payload: data.turnIndex }))
     conn.on('TurnSkipped', (data) => {
@@ -89,7 +93,7 @@ export function useSignalR({ state, dispatch, connection, setConnection, addToas
     conn.on('GameStateSync', (data) =>
       dispatch({ type: 'GAME_STATE_SYNC', payload: data }))
     conn.on('PlayerReconnected', (data) => {
-      // Assuming you might want an action for this later, but for now just show toast
+      dispatch({ type: 'PLAYER_RECONNECTED', payload: data.playerId })
       addToast(`${data.nickname} reconnected`, 'success')
     })
 

@@ -89,15 +89,16 @@ export default function VotePanel({ cardPlay, myPlayerId }: Props) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => submitVote(cardPlay.id, opt.type)}
+          aria-label={`Vote ${opt.label}`}
           className={`
-            flex-1 flex flex-col items-center gap-0.5 py-2 px-3
+            flex-1 flex flex-col items-center gap-1 py-2.5 px-3
             rounded-xl border-2 border-gray-200 bg-white
             transition-all duration-150 cursor-pointer
             ${opt.hoverColor}
           `}
         >
-          <span className="text-xl">{opt.emoji}</span>
-          <span className="text-xs font-body font-semibold text-gray-600">
+          <span className="text-2xl" aria-hidden="true">{opt.emoji}</span>
+          <span className="text-sm font-display font-bold text-gray-700">
             {opt.label}
           </span>
           <span className="text-xs text-gray-400 font-body">{opt.points}</span>

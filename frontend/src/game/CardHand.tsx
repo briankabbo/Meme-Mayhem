@@ -28,8 +28,9 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
         )}
       </div>
 
-      {/* Cards — flex row, each card takes equal share, no scroll */}
-      <div className="flex gap-2">
+      {/* Cards — horizontal scroll on mobile, equal flex on desktop */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1
+                      snap-x snap-mandatory lg:overflow-visible">
         <AnimatePresence>
           {cards.map((card, index) => {
             const isSelected = selectedCardId === card.id
@@ -55,7 +56,8 @@ export default function CardHand({ cards, isMyTurn, selectedCardId }: Props) {
                     submitCard(card.id)
                 }}
                 className={`
-                  relative flex-1 min-w-0 rounded-2xl overflow-hidden
+                  relative flex-shrink-0 w-24 sm:w-auto sm:flex-1 sm:min-w-0
+                  snap-center rounded-2xl overflow-hidden
                   border-2 transition-all duration-200
                   ${isMyTurn && !selectedCardId
                     ? 'cursor-pointer'

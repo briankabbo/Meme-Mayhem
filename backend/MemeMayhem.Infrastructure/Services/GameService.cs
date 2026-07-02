@@ -478,4 +478,112 @@ public class GameService : IGameService
             CardPlays = new List<CardPlayDto>()
         };
     }
+
+    public async Task<List<Guid>> GetMissingVotersAsync(Guid cardPlayId, Guid roomId)
+    {
+        var cardPlay = await _db.CardPlays.FindAsync(cardPlayId)
+            ?? throw new InvalidOperationException("Card play not found");
+
+        var existingVoterIds = await _db.Votes
+            .Where(v => v.CardPlayId == cardPlayId)
+            .Select(v => v.VoterId)
+            .ToListAsync();
+
+        var eligibleVoters = await _db.Players
+            .Where(p =>
+                p.RoomId == roomId &&
+                !p.IsSpectator &&
+                p.IsConnected &&
+                p.Id != cardPlay.PlayerId)
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        return eligibleVoters
+            .Where(id => !existingVoterIds.Contains(id))
+            .ToList();
+    }
+
+    public async Task<Guid?> GetActiveCardPlayAsync(Guid roomId)
+    {
+        var activeRound = await _db.Rounds
+            .FirstOrDefaultAsync(r => r.RoomId == roomId && r.Status != RoundStatus.Completed);
+
+        if (activeRound == null) return null;
+
+        var latestCardPlay = await _db.CardPlays
+            .Where(cp => cp.RoundId == activeRound.Id)
+            .OrderByDescending(cp => cp.PlayedAt)
+            .FirstOrDefaultAsync();
+
+        if (latestCardPlay == null) return null;
+
+        // Ensure it's not already complete
+        var activePlayers = await _db.Players
+            .CountAsync(p => p.RoomId == roomId && !p.IsSpectator && p.IsConnected);
+
+        int votesNeeded = activePlayers - 1; // excluding presenter
+        if (votesNeeded <= 0) votesNeeded = 0; // fallback
+
+        int votesCast = await _db.Votes
+            .CountAsync(v => v.CardPlayId == latestCardPlay.Id);
+
+        if (votesCast >= votesNeeded) return null;
+
+        return latestCardPlay.Id;
+    }
+
+    public async Task<RoundDto?> GetCurrentRoundForRoomAsync(Guid roomId)
+    {
+        var activeRound = await _db.Rounds
+            .FirstOrDefaultAsync(r => r.RoomId == roomId && r.Status != RoundStatus.Completed);
+
+        if (activeRound == null) return null;
+
+        return await GetRoundDtoAsync(activeRound.Id);
+    }
+
+    public async Task<RoundDto?> GetRoundWithCardPlaysAsync(Guid roundId)
+    {
+        var roundDto = await GetRoundDtoAsync(roundId);
+        if (roundDto == null) return null;
+
+        var cardPlays = await _db.CardPlays
+            .Include(cp => cp.Player)
+            .Include(cp => cp.MemeCard)
+            .Include(cp => cp.Votes)
+                .ThenInclude(v => v.Voter)
+            .Where(cp => cp.RoundId == roundId)
+            .OrderBy(cp => cp.TurnIndex)
+            .ToListAsync();
+
+        var cardPlayDtos = new List<CardPlayDto>();
+        foreach (var cp in cardPlays)
+        {
+            var signedUrl = await _storageService.GetSignedUrlAsync(cp.MemeCard.StoragePath);
+            cardPlayDtos.Add(new CardPlayDto
+            {
+                Id = cp.Id,
+                PlayerId = cp.PlayerId,
+                PlayerName = cp.Player.Nickname,
+                Card = new MemeCardDto
+                {
+                    Id = cp.MemeCard.Id,
+                    Label = cp.MemeCard.Label,
+                    ImageUrl = signedUrl
+                },
+                TurnIndex = cp.TurnIndex,
+                Votes = cp.Votes.Select(v => new VoteDto
+                {
+                    VoterId = v.VoterId,
+                    VoterName = v.Voter.Nickname,
+                    VoteType = v.VoteType.ToString(),
+                    Points = v.Points
+                }).ToList()
+            });
+        }
+
+        roundDto.CardPlays = cardPlayDtos;
+
+        return roundDto;
+    }
 }

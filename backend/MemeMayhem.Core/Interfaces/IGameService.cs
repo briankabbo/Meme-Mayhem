@@ -18,4 +18,8 @@ public interface IGameService
     Task<List<MemeCardDto>> GetPlayerHandAsync(Guid playerId);
     Task<CardPlayWithRoundDto?> GetCardPlayWithRoundAsync(Guid cardPlayId);
     Task<RoundDto?> GetRoundDtoAsync(Guid roundId);
+    Task<List<Guid>> GetMissingVotersAsync(Guid cardPlayId, Guid roomId);
+    Task<Guid?> GetActiveCardPlayAsync(Guid roomId);
+    Task<RoundDto?> GetCurrentRoundForRoomAsync(Guid roomId);
+    Task<RoundDto?> GetRoundWithCardPlaysAsync(Guid roundId);
 }

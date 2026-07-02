@@ -27,6 +27,7 @@ const initialState: GameState = {
   currentRoundNumber: 0,
   error: null,
   theme: null,
+  voteTimerSeconds: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -94,6 +95,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         roundResults: null,
         isMyTurn: false,
         selectedCardId: null,
+        voteTimerSeconds: null,
       }
 
     case 'YOUR_TURN':
@@ -116,6 +118,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         }
       }
 
+    case 'VOTE_TIMER_STARTED':
+      return { ...state, voteTimerSeconds: action.payload }
+
     case 'VOTE_RECEIVED':
       if (!state.currentRound) return state
       return {
@@ -135,7 +140,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         roundResults: action.payload,
         isMyTurn: false,
+        voteTimerSeconds: null,
       }
+
+    case 'TURN_ENDED':
+      return { ...state, voteTimerSeconds: null }
 
     case 'NEW_CARD_DEALT':
       return { ...state, hand: action.payload }
@@ -153,10 +162,29 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isHost: state.playerId === action.payload,
-        players: state.players.map((p: Player) => ({
-          ...p,
-          isHost: p.id === action.payload
-        }))
+        players: state.players.map(p =>
+          p.id === action.payload
+            ? { ...p, isHost: true }
+            : { ...p, isHost: false }
+        )
+      }
+
+    case 'GAME_STATE_SYNC':
+      return {
+        ...state,
+        roomId: action.payload.roomId,
+        roomCode: action.payload.roomCode,
+        roomStatus: action.payload.roomStatus,
+        playerId: action.payload.playerId,
+        isHost: action.payload.isHost,
+        isSpectator: action.payload.isSpectator,
+        theme: action.payload.theme,
+        totalRounds: action.payload.totalRounds,
+        currentRoundNumber: action.payload.currentRoundNumber,
+        players: action.payload.players,
+        currentRound: action.payload.currentRound || null,
+        hand: action.payload.hand,
+        isMyTurn: action.payload.isMyTurn,
       }
 
     default:
@@ -171,11 +199,14 @@ const GameContext = createContext<{
   setConnection: (conn: signalR.HubConnection | null) => void
 } | null>(null)
 
+import { useToast } from '../components/ui/ToastProvider'
+
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState)
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
+  const { addToast } = useToast()
 
-  useSignalR({ state, dispatch, connection, setConnection })
+  useSignalR({ state, dispatch, connection, setConnection, addToast })
 
   return (
     <GameContext.Provider value={{ state, dispatch, connection, setConnection }}>

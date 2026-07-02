@@ -40,6 +40,11 @@ export function useGame() {
     },
     submitVote: (cardPlayId: string, voteType: string) =>
       invoke('SubmitVote', cardPlayId, voteType),
+    reconnect: () => {
+      if (!state.roomCode || !state.playerId) return
+      dispatch({ type: 'CLEAR_ERROR' })
+      return invoke('Reconnect', state.roomCode, state.playerId)
+    },
     clearError: () =>
       dispatch({ type: 'CLEAR_ERROR' }),
   }

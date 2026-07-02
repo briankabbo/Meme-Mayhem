@@ -28,6 +28,7 @@ const initialState: GameState = {
   error: null,
   theme: null,
   voteTimerSeconds: null,
+  activeCardPlayId: null,
 }
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -74,7 +75,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'PLAYER_LEFT':
       return {
         ...state,
-        players: state.players.filter((p: Player) => p.id !== action.payload)
+        players: state.players.map((p: Player) =>
+          p.id === action.payload ? { ...p, isConnected: false } : p
+        ),
+      }
+
+    case 'PLAYER_RECONNECTED':
+      return {
+        ...state,
+        players: state.players.map((p: Player) =>
+          p.id === action.payload ? { ...p, isConnected: true } : p
+        ),
       }
 
     case 'GAME_STARTED':
@@ -96,6 +107,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         isMyTurn: false,
         selectedCardId: null,
         voteTimerSeconds: null,
+        activeCardPlayId: null,
       }
 
     case 'YOUR_TURN':
@@ -109,6 +121,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         isMyTurn: false,
+        activeCardPlayId: action.payload.id,
         currentRound: {
           ...state.currentRound,
           cardPlays: [
@@ -119,7 +132,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case 'VOTE_TIMER_STARTED':
-      return { ...state, voteTimerSeconds: action.payload }
+      return {
+        ...state,
+        voteTimerSeconds: action.payload,
+      }
 
     case 'VOTE_RECEIVED':
       if (!state.currentRound) return state
@@ -144,7 +160,33 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       }
 
     case 'TURN_ENDED':
-      return { ...state, voteTimerSeconds: null }
+      return { ...state, voteTimerSeconds: null, activeCardPlayId: null }
+
+    case 'TURN_STARTED':
+      if (!state.currentRound) return state
+      return {
+        ...state,
+        isMyTurn: false,
+        selectedCardId: null,
+        voteTimerSeconds: null,
+        activeCardPlayId: null,
+        currentRound: {
+          ...state.currentRound,
+          currentPlayerId: action.payload.currentPlayerId,
+          currentTurnIndex: action.payload.turnIndex,
+          totalTurns: action.payload.totalTurns,
+        },
+      }
+
+    case 'TURN_SKIPPED':
+      if (!state.currentRound) return state
+      return {
+        ...state,
+        isMyTurn: false,
+        selectedCardId: null,
+        voteTimerSeconds: null,
+        activeCardPlayId: null,
+      }
 
     case 'NEW_CARD_DEALT':
       return { ...state, hand: action.payload }
@@ -185,6 +227,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         currentRound: action.payload.currentRound || null,
         hand: action.payload.hand,
         isMyTurn: action.payload.isMyTurn,
+        voteTimerSeconds: action.payload.voteTimerSeconds ?? null,
+        activeCardPlayId: action.payload.activeCardPlayId ?? null,
+        roundResults: null,
+        selectedCardId: null,
+        error: null,
       }
 
     default:

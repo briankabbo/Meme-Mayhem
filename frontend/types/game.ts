@@ -79,6 +79,7 @@ export interface GameState {
   error: string | null
   theme: string | null
   voteTimerSeconds: number | null
+  activeCardPlayId: string | null
 }
 
 export type GameAction =
@@ -87,6 +88,7 @@ export type GameAction =
   | { type: 'ROOM_JOINED'; payload: { roomId: string; playerId: string; isHost: boolean; code: string; theme: string; totalRounds: number; players: Player[] } }
   | { type: 'PLAYER_JOINED'; payload: Player }
   | { type: 'PLAYER_LEFT'; payload: string }
+  | { type: 'PLAYER_RECONNECTED'; payload: string }
   | { type: 'GAME_STARTED' }
   | { type: 'HAND_DEALT'; payload: MemeCard[] }
   | { type: 'ROUND_STARTED'; payload: Round }
@@ -94,6 +96,7 @@ export type GameAction =
   | { type: 'CARD_REVEALED'; payload: CardPlay }
   | { type: 'VOTE_TIMER_STARTED'; payload: number }
   | { type: 'VOTE_RECEIVED'; payload: { cardPlayId: string; vote: Vote } }
+  | { type: 'TURN_STARTED'; payload: { currentPlayerId: string; turnIndex: number; totalTurns: number } }
   | { type: 'TURN_ENDED'; payload: number }
   | { type: 'TURN_SKIPPED'; payload: string }
   | { type: 'ROUND_ENDED'; payload: RoundResult }
@@ -103,4 +106,4 @@ export type GameAction =
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'HOST_CHANGED'; payload: string }
-  | { type: 'GAME_STATE_SYNC'; payload: Partial<GameState> & Pick<GameState, 'roomId' | 'roomCode' | 'roomStatus' | 'playerId' | 'isHost' | 'isSpectator' | 'theme' | 'totalRounds' | 'currentRoundNumber' | 'players' | 'currentRound' | 'hand' | 'isMyTurn'> }
+  | { type: 'GAME_STATE_SYNC'; payload: Partial<GameState> & Pick<GameState, 'roomId' | 'roomCode' | 'roomStatus' | 'playerId' | 'isHost' | 'isSpectator' | 'theme' | 'totalRounds' | 'currentRoundNumber' | 'players' | 'currentRound' | 'hand' | 'isMyTurn'> & { voteTimerSeconds?: number | null; activeCardPlayId?: string | null } }

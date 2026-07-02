@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from 'react'
 import * as signalR from '@microsoft/signalr'
 import type { GameAction, GameState } from '../../types/game'
 
+import { ToastType } from '../components/ui/ToastProvider'
+
 const HUB_URL = 'http://localhost:5235/hubs/game'
 
 type UseSignalRArgs = {
@@ -9,9 +11,10 @@ type UseSignalRArgs = {
   dispatch: React.Dispatch<GameAction>
   connection: signalR.HubConnection | null
   setConnection: (conn: signalR.HubConnection | null) => void
+  addToast: (message: string, type?: ToastType) => void
 }
 
-export function useSignalR({ state, dispatch, connection, setConnection }: UseSignalRArgs) {
+export function useSignalR({ state, dispatch, connection, setConnection, addToast }: UseSignalRArgs) {
   const connectingRef = useRef(false)
   const stateRef = useRef(state)
 
@@ -37,12 +40,26 @@ export function useSignalR({ state, dispatch, connection, setConnection }: UseSi
       dispatch({ type: 'ROOM_JOINED', payload: data })
     })
 
-    conn.on('PlayerJoined', (data) =>
-      dispatch({ type: 'PLAYER_JOINED', payload: data }))
-    conn.on('PlayerDisconnected', (data) =>
-      dispatch({ type: 'PLAYER_LEFT', payload: data.playerId }))
-    conn.on('HostChanged', (data) =>
-      dispatch({ type: 'HOST_CHANGED', payload: data.newHostId }))
+    conn.on('PlayerJoined', (data) => {
+      dispatch({ type: 'PLAYER_JOINED', payload: data })
+      addToast(`${data.nickname} joined the room`, 'info')
+    })
+    conn.on('PlayerDisconnected', (data) => {
+      dispatch({ type: 'PLAYER_LEFT', payload: data.playerId })
+      addToast(`${data.nickname} disconnected`, 'warning')
+    })
+    conn.on('PlayerTimedOut', (data) => {
+      addToast(`${data.nickname} timed out and was removed`, 'error')
+      // Note: Backend might send another PlayerDisconnected, or we just handle it here.
+      // But we will at least show the toast.
+    })
+    conn.on('HostChanged', (data) => {
+      dispatch({ type: 'HOST_CHANGED', payload: data.newHostId })
+      const { playerId } = stateRef.current
+      if (playerId === data.newHostId) {
+        addToast('You are the new host', 'success')
+      }
+    })
     conn.on('GameStarted', () => dispatch({ type: 'GAME_STARTED' }))
     conn.on('HandDealt', (data) =>
       dispatch({ type: 'HAND_DEALT', payload: data }))
@@ -51,12 +68,31 @@ export function useSignalR({ state, dispatch, connection, setConnection }: UseSi
     conn.on('YourTurn', () => dispatch({ type: 'YOUR_TURN' }))
     conn.on('CardRevealed', (data) =>
       dispatch({ type: 'CARD_REVEALED', payload: data }))
+    conn.on('VoteTimerStarted', (data) =>
+      dispatch({ type: 'VOTE_TIMER_STARTED', payload: data.seconds }))
+    conn.on('TurnEnded', (data) =>
+      dispatch({ type: 'TURN_ENDED', payload: data.turnIndex }))
+    conn.on('TurnSkipped', (data) => {
+      dispatch({ type: 'TURN_SKIPPED', payload: data.playerId })
+      const { players } = stateRef.current
+      const skippedPlayer = players.find(p => p.id === data.playerId)
+      if (skippedPlayer) {
+        addToast(`${skippedPlayer.nickname}'s turn was skipped (${data.reason})`, 'warning')
+      }
+    })
     conn.on('VoteReceived', (data) =>
       dispatch({ type: 'VOTE_RECEIVED', payload: data }))
     conn.on('RoundEnded', (data) =>
       dispatch({ type: 'ROUND_ENDED', payload: data }))
-    conn.on('NewCardDealt', (data) =>
-      dispatch({ type: 'NEW_CARD_DEALT', payload: data }))
+    conn.on('NewCardDealt', (hand) =>
+      dispatch({ type: 'NEW_CARD_DEALT', payload: hand }))
+    conn.on('GameStateSync', (data) =>
+      dispatch({ type: 'GAME_STATE_SYNC', payload: data }))
+    conn.on('PlayerReconnected', (data) => {
+      // Assuming you might want an action for this later, but for now just show toast
+      addToast(`${data.nickname} reconnected`, 'success')
+    })
+
     conn.on('GameOver', (data) =>
       dispatch({ type: 'GAME_OVER', payload: data.finalScores }))
     conn.on('Error', (message) =>

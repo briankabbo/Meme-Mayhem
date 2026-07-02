@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import type { CardPlay, VoteType } from '../../types/game'
 import { useGame } from '../hooks/useGame'
+import TurnTimer from './TurnTimer'
 
 interface Props {
   cardPlay: CardPlay | null
@@ -42,7 +43,7 @@ const VOTE_OPTIONS: {
   ]
 
 export default function VotePanel({ cardPlay, myPlayerId }: Props) {
-  const { submitVote } = useGame()
+  const { submitVote, state } = useGame()
 
   if (!cardPlay) return null
 
@@ -54,6 +55,11 @@ export default function VotePanel({ cardPlay, myPlayerId }: Props) {
     return (
       <div className="flex items-center justify-center gap-2 py-3 text-gray-400">
         <span className="text-sm font-body">Others are voting on your card...</span>
+        {state.voteTimerSeconds && (
+          <div className="ml-4 scale-75 origin-left">
+            <TurnTimer seconds={state.voteTimerSeconds} />
+          </div>
+        )}
       </div>
     )
   }
@@ -97,6 +103,11 @@ export default function VotePanel({ cardPlay, myPlayerId }: Props) {
           <span className="text-xs text-gray-400 font-body">{opt.points}</span>
         </motion.button>
       ))}
+      {state.voteTimerSeconds && !hasVoted && (
+        <div className="ml-2 scale-75 origin-right">
+          <TurnTimer seconds={state.voteTimerSeconds} />
+        </div>
+      )}
     </div>
   )
 }

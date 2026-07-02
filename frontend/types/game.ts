@@ -78,6 +78,7 @@ export interface GameState {
   currentRoundNumber: number
   error: string | null
   theme: string | null
+  voteTimerSeconds: number | null
 }
 
 export type GameAction =
@@ -91,6 +92,7 @@ export type GameAction =
   | { type: 'ROUND_STARTED'; payload: Round }
   | { type: 'YOUR_TURN' }
   | { type: 'CARD_REVEALED'; payload: CardPlay }
+  | { type: 'VOTE_TIMER_STARTED'; payload: number }
   | { type: 'VOTE_RECEIVED'; payload: { cardPlayId: string; vote: Vote } }
   | { type: 'TURN_ENDED'; payload: number }
   | { type: 'TURN_SKIPPED'; payload: string }
@@ -101,3 +103,4 @@ export type GameAction =
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'HOST_CHANGED'; payload: string }
+  | { type: 'GAME_STATE_SYNC'; payload: Partial<GameState> & Pick<GameState, 'roomId' | 'roomCode' | 'roomStatus' | 'playerId' | 'isHost' | 'isSpectator' | 'theme' | 'totalRounds' | 'currentRoundNumber' | 'players' | 'currentRound' | 'hand' | 'isMyTurn'> }

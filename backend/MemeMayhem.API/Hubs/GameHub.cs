@@ -350,6 +350,8 @@ public class GameHub : Hub
 
             // 5. Notify first player it's their turn
             await NotifyCurrentPlayerAsync(round);
+
+            await StartTurnTimerAsync(round.Id, round.CurrentPlayerId, roomId);
         }
         catch (Exception ex)
         {

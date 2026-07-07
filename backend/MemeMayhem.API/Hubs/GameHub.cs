@@ -4,6 +4,7 @@ using MemeMayhem.Core.Interfaces;
 using MemeMayhem.Core.Enums;
 using MemeMayhem.Infrastructure.Services;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MemeMayhem.API.Hubs;
 
@@ -15,15 +16,19 @@ public class GameHub : Hub
 
     private readonly IRoomService _roomService;
     private readonly IGameService _gameService;
+    private readonly IServiceScopeFactory _scopeFactory; //Create fresh DI scopes inside background timer callbacks
+
     private static readonly Dictionary<Guid, CancellationTokenSource> _turnTimers = new();
     private static readonly Dictionary<Guid, CancellationTokenSource> _disconnectTimers = new();
     private static readonly Dictionary<Guid, CancellationTokenSource> _voteTimers = new();
     private static readonly Dictionary<Guid, DateTime> _voteTimerStartedAt = new();
-
-    public GameHub(IRoomService roomService, IGameService gameService)
+    private static readonly HashSet<Guid> _advancingCardPlays = new();
+    private static readonly object _advancingLock = new();
+    public GameHub(IRoomService roomService, IGameService gameService, IServiceScopeFactory scopeFactory)
     {
         _roomService = roomService;
         _gameService = gameService;
+        _scopeFactory = scopeFactory;
     }
 
     // Connection
@@ -49,9 +54,7 @@ public class GameHub : Hub
                 Nickname = player.Nickname
             });
 
-        // Resolve turn/vote state BEFORE host promotion so clients never see
-        // "new host, old stuck turn" when the disconnecting player is both host and current turn player.
-        await ResolveDisconnectGameStateAsync(player);
+        await ResolveDisconnectGameStateAsync(player, _gameService, _roomService);
 
         if (player.IsHost)
             await PromoteHostAsync(player.RoomId);
@@ -71,7 +74,7 @@ public class GameHub : Hub
                 {
                     await Task.Delay(TimeSpan.FromSeconds(DisconnectGraceSeconds), cts.Token);
 
-                    // Still disconnected after 30s → notify room
+                    // one is already safe without a fresh scope.
                     await Clients.Group(player.RoomId.ToString())
                         .SendAsync("PlayerTimedOut", new
                         {
@@ -147,7 +150,7 @@ public class GameHub : Hub
                 return;
             }
 
-            // Game already started → spectator
+            // Game already started - spectator
             if (room.Status != RoomStatus.Lobby)
             {
                 var spectator = await _roomService
@@ -332,7 +335,7 @@ public class GameHub : Hub
             // 2. Deal hands privately first
             try
             {
-                await DealHandsToPlayersAsync(roomId);
+                await DealHandsToPlayersAsync(roomId, _gameService, _roomService);
             }
             catch (Exception dealEx)
             {
@@ -349,8 +352,14 @@ public class GameHub : Hub
                 .SendAsync("GameStarted", new { RoomId = roomId });
 
             // 5. Notify first player it's their turn
-            await NotifyCurrentPlayerAsync(round);
+            await NotifyCurrentPlayerAsync(round, _roomService);
 
+            // FIX: this call was missing entirely — turn 1 never got a server-side
+            // timer, so TurnTimerStarted never fired and clients defaulted to 0s,
+            // and a genuinely idle first player would never get auto-skipped.
+            // Every other turn-start path (AdvanceTurnAsync, EndRoundAsync,
+            // HandleTurnSkippedAsync) already calls this — StartGame was the
+            // only one that didn't.
             await StartTurnTimerAsync(round.Id, round.CurrentPlayerId, roomId);
         }
         catch (Exception ex)
@@ -427,7 +436,7 @@ public class GameHub : Hub
             if (await _gameService.IsTurnCompleteAsync(cardPlayId))
             {
                 CancelVoteTimer(cardPlayId);
-                await AdvanceTurnAsync(cardPlayId, player.RoomId);
+                await AdvanceTurnAsync(cardPlayId, player.RoomId, _gameService, _roomService);
             }
         }
         catch (Exception ex)
@@ -436,11 +445,10 @@ public class GameHub : Hub
         }
     }
 
-    // Private Helpers
-
-    private async Task ResolveDisconnectGameStateAsync(Player player)
+    private async Task ResolveDisconnectGameStateAsync(
+        Player player, IGameService gameService, IRoomService roomService)
     {
-        var currentRound = await _gameService.GetCurrentRoundForRoomAsync(player.RoomId);
+        var currentRound = await gameService.GetCurrentRoundForRoomAsync(player.RoomId);
         if (currentRound == null) return;
 
         // TurnSkipped first when the disconnecting player holds the active card-picking turn.
@@ -457,65 +465,82 @@ public class GameHub : Hub
                 }
             }
 
-            await HandleTurnSkippedAsync(currentRound.Id, player.Id, player.RoomId);
+            await HandleTurnSkippedAsync(currentRound.Id, player.Id, player.RoomId, gameService, roomService);
         }
 
         // Re-evaluate vote completion — disconnected players are excluded from required vote count.
-        var activeCardPlayId = await _gameService.GetActiveCardPlayAsync(player.RoomId);
+        var activeCardPlayId = await gameService.GetActiveCardPlayAsync(player.RoomId);
         if (!activeCardPlayId.HasValue) return;
 
-        if (await _gameService.IsTurnCompleteAsync(activeCardPlayId.Value))
+        if (await gameService.IsTurnCompleteAsync(activeCardPlayId.Value))
         {
             CancelVoteTimer(activeCardPlayId.Value);
-            await AdvanceTurnAsync(activeCardPlayId.Value, player.RoomId);
+            await AdvanceTurnAsync(activeCardPlayId.Value, player.RoomId, gameService, roomService);
         }
     }
 
-    private async Task AdvanceTurnAsync(Guid cardPlayId, Guid roomId)
+    private async Task AdvanceTurnAsync(
+        Guid cardPlayId, Guid roomId, IGameService gameService, IRoomService roomService)
     {
-        // Get round from cardplay
-        var cardPlay = await _gameService.GetCardPlayWithRoundAsync(cardPlayId);
-        if (cardPlay == null) return;
-
-        var round = cardPlay.Round;
-
-        await Clients.Group(roomId.ToString())
-            .SendAsync("TurnEnded", new
-            {
-                TurnIndex = round.CurrentTurnIndex
-            });
-
-        // Advance turn index
-        await _gameService.SkipTurnAsync(round.Id);
-        round.CurrentTurnIndex++;
-
-        // Check if round complete
-        if (await _gameService.IsRoundCompleteAsync(round.Id))
+        lock (_advancingLock)
         {
-            await EndRoundAsync(round.Id, roomId);
-            return;
+            if (!_advancingCardPlays.Add(cardPlayId))
+                return;
         }
 
-        // Reload updated round
-        var updatedRound = await GetRoundDtoAsync(round.Id);
-        if (updatedRound == null) return;
+        try
+        {
+            // Get round from cardplay
+            var cardPlay = await gameService.GetCardPlayWithRoundAsync(cardPlayId);
+            if (cardPlay == null) return;
 
-        await Clients.Group(roomId.ToString())
-            .SendAsync("TurnStarted", new
+            var round = cardPlay.Round;
+
+            await Clients.Group(roomId.ToString())
+                .SendAsync("TurnEnded", new
+                {
+                    TurnIndex = round.CurrentTurnIndex
+                });
+
+            // Advance turn index
+            await gameService.SkipTurnAsync(round.Id);
+
+            // Check if round complete
+            if (await gameService.IsRoundCompleteAsync(round.Id))
             {
-                CurrentPlayerId = updatedRound.CurrentPlayerId,
-                TurnIndex = updatedRound.CurrentTurnIndex,
-                TotalTurns = updatedRound.TotalTurns
-            });
+                await EndRoundAsync(round.Id, roomId, gameService, roomService);
+                return;
+            }
 
-        // Notify current player privately + start timer
-        await NotifyCurrentPlayerAsync(updatedRound);
-        await StartTurnTimerAsync(round.Id, updatedRound.CurrentPlayerId, roomId);
+            // Reload updated round
+            var updatedRound = await gameService.GetRoundDtoAsync(round.Id);
+            if (updatedRound == null) return;
+
+            await Clients.Group(roomId.ToString())
+                .SendAsync("TurnStarted", new
+                {
+                    CurrentPlayerId = updatedRound.CurrentPlayerId,
+                    TurnIndex = updatedRound.CurrentTurnIndex,
+                    TotalTurns = updatedRound.TotalTurns
+                });
+
+            // Notify current player privately + start timer
+            await NotifyCurrentPlayerAsync(updatedRound, roomService);
+            await StartTurnTimerAsync(round.Id, updatedRound.CurrentPlayerId, roomId);
+        }
+        finally
+        {
+            lock (_advancingLock)
+            {
+                _advancingCardPlays.Remove(cardPlayId);
+            }
+        }
     }
 
-    private async Task EndRoundAsync(Guid roundId, Guid roomId)
+    private async Task EndRoundAsync(
+        Guid roundId, Guid roomId, IGameService gameService, IRoomService roomService)
     {
-        var results = await _gameService.EndRoundAsync(roundId);
+        var results = await gameService.EndRoundAsync(roundId);
 
         await Clients.Group(roomId.ToString())
             .SendAsync("RoundEnded", results);
@@ -535,18 +560,18 @@ public class GameHub : Hub
         }
 
         // Only draw new cards if game continues
-        await DrawNewCardsAsync(roomId);
+        await DrawNewCardsAsync(roomId, gameService, roomService);
 
         // Start next round
-        var nextRound = await _gameService.StartNextRoundAsync(roomId);
+        var nextRound = await gameService.StartNextRoundAsync(roomId);
 
         // Deal new hands before showing next round
-        await DealHandsToPlayersAsync(roomId);
+        await DealHandsToPlayersAsync(roomId, gameService, roomService);
 
         await Clients.Group(roomId.ToString())
             .SendAsync("RoundStarted", nextRound);
 
-        await NotifyCurrentPlayerAsync(nextRound);
+        await NotifyCurrentPlayerAsync(nextRound, roomService);
         await StartTurnTimerAsync(
             nextRound.Id, nextRound.CurrentPlayerId, roomId);
     }
@@ -570,10 +595,18 @@ public class GameHub : Hub
                 try
                 {
                     await Task.Delay(TimeSpan.FromSeconds(TurnTimeoutSeconds), cts.Token);
+                    using var scope = _scopeFactory.CreateScope();
+                    var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
+                    var roomService = scope.ServiceProvider.GetRequiredService<IRoomService>();
 
-                    await HandleTurnSkippedAsync(roundId, currentPlayerId, roomId);
+                    await HandleTurnSkippedAsync(roundId, currentPlayerId, roomId, gameService, roomService);
                 }
                 catch (TaskCanceledException) { }
+                catch (Exception ex)
+                {
+                    await Clients.Group(roomId.ToString())
+                        .SendAsync("Error", $"Turn timer error: {ex.Message}");
+                }
                 finally
                 {
                     lock (_turnTimers)
@@ -585,7 +618,8 @@ public class GameHub : Hub
         }, cts.Token);
     }
 
-    private async Task HandleTurnSkippedAsync(Guid roundId, Guid currentPlayerId, Guid roomId)
+    private async Task HandleTurnSkippedAsync(
+        Guid roundId, Guid currentPlayerId, Guid roomId, IGameService gameService, IRoomService roomService)
     {
         await Clients.Group(roomId.ToString())
             .SendAsync("TurnSkipped", new
@@ -594,13 +628,13 @@ public class GameHub : Hub
                 Reason = "Timer expired or disconnected"
             });
 
-        await _gameService.SkipTurnAsync(roundId);
-        var updatedRound = await GetRoundDtoAsync(roundId);
+        await gameService.SkipTurnAsync(roundId);
+        var updatedRound = await gameService.GetRoundDtoAsync(roundId);
         if (updatedRound == null) return;
 
-        if (await _gameService.IsRoundCompleteAsync(roundId))
+        if (await gameService.IsRoundCompleteAsync(roundId))
         {
-            await EndRoundAsync(roundId, roomId);
+            await EndRoundAsync(roundId, roomId, gameService, roomService);
             return;
         }
 
@@ -612,7 +646,7 @@ public class GameHub : Hub
                 TotalTurns = updatedRound.TotalTurns
             });
 
-        await NotifyCurrentPlayerAsync(updatedRound);
+        await NotifyCurrentPlayerAsync(updatedRound, roomService);
         await StartTurnTimerAsync(roundId, updatedRound.CurrentPlayerId, roomId);
     }
 
@@ -640,14 +674,19 @@ public class GameHub : Hub
                 {
                     await Task.Delay(TimeSpan.FromSeconds(VoteTimeoutSeconds), cts.Token);
 
+                    // resolve fresh scoped services before hitting the database.
+                    using var scope = _scopeFactory.CreateScope();
+                    var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
+                    var roomService = scope.ServiceProvider.GetRequiredService<IRoomService>();
+
                     // Timer expired → auto-vote Meh for missing voters
-                    var missingVoters = await _gameService.GetMissingVotersAsync(cardPlayId, roomId);
+                    var missingVoters = await gameService.GetMissingVotersAsync(cardPlayId, roomId);
 
                     foreach (var voterId in missingVoters)
                     {
                         try
                         {
-                            var vote = await _gameService.SubmitVoteAsync(cardPlayId, voterId, "Meh");
+                            var vote = await gameService.SubmitVoteAsync(cardPlayId, voterId, "Meh");
                             await Clients.Group(roomId.ToString())
                                 .SendAsync("VoteReceived", new
                                 {
@@ -662,12 +701,18 @@ public class GameHub : Hub
                     }
 
                     // Advance turn if all votes are now in
-                    if (await _gameService.IsTurnCompleteAsync(cardPlayId))
+                    if (await gameService.IsTurnCompleteAsync(cardPlayId))
                     {
-                        await AdvanceTurnAsync(cardPlayId, roomId);
+                        await AdvanceTurnAsync(cardPlayId, roomId, gameService, roomService);
                     }
                 }
                 catch (TaskCanceledException) { }
+                catch (Exception ex)
+                {
+                    // NEW: same reasoning as the turn timer — don't let this die silently.
+                    await Clients.Group(roomId.ToString())
+                        .SendAsync("Error", $"Vote timer error: {ex.Message}");
+                }
                 finally
                 {
                     lock (_voteTimers)
@@ -713,9 +758,9 @@ public class GameHub : Hub
         }
     }
 
-    private async Task NotifyCurrentPlayerAsync(RoundDto round)
+    private async Task NotifyCurrentPlayerAsync(RoundDto round, IRoomService roomService)
     {
-        var currentPlayer = await _roomService
+        var currentPlayer = await roomService
             .GetPlayerByIdAsync(round.CurrentPlayerId);
 
         if (currentPlayer == null) return;
@@ -730,9 +775,10 @@ public class GameHub : Hub
 
     private async Task PromoteHostAsync(Guid roomId)
     {
+        // Only ever called from OnDisconnectedAsync's live scope, so the
         await _roomService.PromoteNewHostAsync(roomId);
 
-        var newHost = await GetNewHostAsync(roomId);
+        var newHost = await GetNewHostAsync(roomId, _roomService);
         if (newHost == null) return;
 
         await Clients.Group(roomId.ToString())
@@ -743,41 +789,33 @@ public class GameHub : Hub
             });
     }
 
-    private async Task DealHandsToPlayersAsync(Guid roomId)
+    private async Task DealHandsToPlayersAsync(
+        Guid roomId, IGameService gameService, IRoomService roomService)
     {
-        var players = await GetActivePlayersAsync(roomId);
+        var players = await GetActivePlayersAsync(roomId, roomService);
 
         foreach (var player in players)
         {
-            var hand = await _gameService.GetPlayerHandAsync(player.Id);
+            var hand = await gameService.GetPlayerHandAsync(player.Id);
 
             await Clients.Client(player.ConnectionId)
                 .SendAsync("HandDealt", hand);
         }
     }
 
-    private async Task DrawNewCardsAsync(Guid roomId)
+    private async Task DrawNewCardsAsync(
+        Guid roomId, IGameService gameService, IRoomService roomService)
     {
-        var players = await GetActivePlayersAsync(roomId);
+        var players = await GetActivePlayersAsync(roomId, roomService);
 
         foreach (var player in players)
         {
-            await _gameService.DrawCardAsync(player.Id, roomId);
-            var hand = await _gameService.GetPlayerHandAsync(player.Id);
+            await gameService.DrawCardAsync(player.Id, roomId);
+            var hand = await gameService.GetPlayerHandAsync(player.Id);
 
             await Clients.Client(player.ConnectionId)
                 .SendAsync("NewCardDealt", hand);
         }
-    }
-
-    private async Task<CardPlayWithRoundDto?> GetCardPlayWithRoundAsync(Guid cardPlayId)
-    {
-        return await _gameService.GetCardPlayWithRoundAsync(cardPlayId);
-    }
-
-    private async Task<RoundDto?> GetRoundDtoAsync(Guid roundId)
-    {
-        return await _gameService.GetRoundDtoAsync(roundId);
     }
 
     private async Task<Room?> GetRoomAsync(Guid roomId)
@@ -785,16 +823,14 @@ public class GameHub : Hub
         return await _roomService.GetRoomByIdAsync(roomId);
     }
 
-    private async Task<Player?> GetNewHostAsync(Guid roomId)
+    private async Task<Player?> GetNewHostAsync(Guid roomId, IRoomService roomService)
     {
-        var players = await _roomService.GetActivePlayersAsync(roomId);
+        var players = await roomService.GetActivePlayersAsync(roomId);
         return players.FirstOrDefault(p => p.IsHost);
     }
 
-    private async Task<List<Player>> GetActivePlayersAsync(Guid roomId)
+    private async Task<List<Player>> GetActivePlayersAsync(Guid roomId, IRoomService roomService)
     {
-        return await _roomService.GetActivePlayersAsync(roomId);
+        return await roomService.GetActivePlayersAsync(roomId);
     }
-
-
 }

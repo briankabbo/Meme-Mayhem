@@ -28,6 +28,7 @@ const initialState: GameState = {
   error: null,
   theme: null,
   voteTimerSeconds: null,
+  turnTimerSeconds: null, // NEW
   activeCardPlayId: null,
 }
 
@@ -107,6 +108,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         isMyTurn: false,
         selectedCardId: null,
         voteTimerSeconds: null,
+        turnTimerSeconds: null, // NEW — clear any stale timer from the previous round
         activeCardPlayId: null,
       }
 
@@ -122,6 +124,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         isMyTurn: false,
         activeCardPlayId: action.payload.id,
+        turnTimerSeconds: null, // NEW — turn timer is done once a card is revealed; vote timer takes over
         currentRound: {
           ...state.currentRound,
           cardPlays: [
@@ -135,6 +138,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         voteTimerSeconds: action.payload,
+      }
+
+    case 'TURN_TIMER_STARTED': // NEW — mirrors VOTE_TIMER_STARTED exactly
+      return {
+        ...state,
+        turnTimerSeconds: action.payload,
       }
 
     case 'VOTE_RECEIVED':
@@ -157,10 +166,11 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         roundResults: action.payload,
         isMyTurn: false,
         voteTimerSeconds: null,
+        turnTimerSeconds: null, // NEW
       }
 
     case 'TURN_ENDED':
-      return { ...state, voteTimerSeconds: null, activeCardPlayId: null }
+      return { ...state, voteTimerSeconds: null, turnTimerSeconds: null, activeCardPlayId: null }
 
     case 'TURN_STARTED':
       if (!state.currentRound) return state
@@ -169,6 +179,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         isMyTurn: false,
         selectedCardId: null,
         voteTimerSeconds: null,
+        turnTimerSeconds: null, // NEW — the next TurnTimerStarted broadcast will repopulate this
         activeCardPlayId: null,
         currentRound: {
           ...state.currentRound,
@@ -185,6 +196,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         isMyTurn: false,
         selectedCardId: null,
         voteTimerSeconds: null,
+        turnTimerSeconds: null, // NEW
         activeCardPlayId: null,
       }
 
@@ -228,6 +240,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         hand: action.payload.hand,
         isMyTurn: action.payload.isMyTurn,
         voteTimerSeconds: action.payload.voteTimerSeconds ?? null,
+        // NEW — reads turnTimerSeconds if/when the backend Reconnect method sends it.
+        // Backend doesn't populate this yet (only VoteTimerSeconds exists in GameStateSync
+        // today), so this will fall back to null until that follow-up fix lands. Safe either way.
+        turnTimerSeconds: action.payload.turnTimerSeconds ?? null,
         activeCardPlayId: action.payload.activeCardPlayId ?? null,
         roundResults: null,
         selectedCardId: null,

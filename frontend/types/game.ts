@@ -79,6 +79,7 @@ export interface GameState {
   error: string | null
   theme: string | null
   voteTimerSeconds: number | null
+  turnTimerSeconds: number | null // NEW — mirrors voteTimerSeconds, populated by TurnTimerStarted
   activeCardPlayId: string | null
 }
 
@@ -95,6 +96,7 @@ export type GameAction =
   | { type: 'YOUR_TURN' }
   | { type: 'CARD_REVEALED'; payload: CardPlay }
   | { type: 'VOTE_TIMER_STARTED'; payload: number }
+  | { type: 'TURN_TIMER_STARTED'; payload: number } // NEW
   | { type: 'VOTE_RECEIVED'; payload: { cardPlayId: string; vote: Vote } }
   | { type: 'TURN_STARTED'; payload: { currentPlayerId: string; turnIndex: number; totalTurns: number } }
   | { type: 'TURN_ENDED'; payload: number }
@@ -106,4 +108,4 @@ export type GameAction =
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'HOST_CHANGED'; payload: string }
-  | { type: 'GAME_STATE_SYNC'; payload: Partial<GameState> & Pick<GameState, 'roomId' | 'roomCode' | 'roomStatus' | 'playerId' | 'isHost' | 'isSpectator' | 'theme' | 'totalRounds' | 'currentRoundNumber' | 'players' | 'currentRound' | 'hand' | 'isMyTurn'> & { voteTimerSeconds?: number | null; activeCardPlayId?: string | null } }
+  | { type: 'GAME_STATE_SYNC'; payload: Partial<GameState> & Pick<GameState, 'roomId' | 'roomCode' | 'roomStatus' | 'playerId' | 'isHost' | 'isSpectator' | 'theme' | 'totalRounds' | 'currentRoundNumber' | 'players' | 'currentRound' | 'hand' | 'isMyTurn'> & { voteTimerSeconds?: number | null; turnTimerSeconds?: number | null; activeCardPlayId?: string | null } }

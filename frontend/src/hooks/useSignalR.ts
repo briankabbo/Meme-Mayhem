@@ -72,6 +72,11 @@ export function useSignalR({ state, dispatch, connection, setConnection, addToas
       dispatch({ type: 'CARD_REVEALED', payload: data }))
     conn.on('VoteTimerStarted', (data) =>
       dispatch({ type: 'VOTE_TIMER_STARTED', payload: data.seconds }))
+    // NEW — this was the missing handler. Backend already broadcasts TurnTimerStarted
+    // to the whole room group (see GameHub.StartTurnTimerAsync), but nothing here was
+    // ever listening for it, so turnTimerSeconds in state never got set for anyone.
+    conn.on('TurnTimerStarted', (data) =>
+      dispatch({ type: 'TURN_TIMER_STARTED', payload: data.seconds }))
     conn.on('TurnStarted', (data) =>
       dispatch({ type: 'TURN_STARTED', payload: data }))
     conn.on('TurnEnded', (data) =>

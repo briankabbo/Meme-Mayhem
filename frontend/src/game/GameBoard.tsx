@@ -15,6 +15,7 @@ export default function GameBoard() {
   const {
     currentRound, hand, players, playerId,
     selectedCardId, isMyTurn, roundResults, isSpectator,
+    turnTimerSeconds, // NEW — real, server-driven value; previously ignored in favor of a hardcoded 15
   } = state
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
@@ -79,7 +80,9 @@ export default function GameBoard() {
 
           {/* Right — timer + player count + mobile leaderboard toggle */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {isMyTurn && !isSpectator && <TurnTimer seconds={15} />}
+            {!isSpectator && turnTimerSeconds !== null && (
+              <TurnTimer seconds={turnTimerSeconds} />
+            )}
             <div className="flex items-center gap-1 text-gray-400">
               <Users className="w-4 h-4" />
               <span className="text-sm font-body">
